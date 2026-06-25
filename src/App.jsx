@@ -7,11 +7,11 @@ const C = {
   ink:"#0D1B2A", slate:"#5A6B82", fog:"#E8EDF4", mist:"#F2F4F8",
   green:"#0A9E64", greenSoft:"#E0F5EC",
   blue:"#1658C8", blueSoft:"#E4EEFB",
-  muted:"#9aaabb",
+  muted:"#9aaabb", red:"#D42B2B",
 };
 const serif = "'Cormorant Garamond', Georgia, serif";
 const sans  = "'Plus Jakarta Sans', system-ui, sans-serif";
-const GOOGLE_FORM_EMBED = "https://docs.google.com/forms/d/e/1FAIpQLSdysXIi5gVecLnlDpJ0UlpCsmo0e5brLuAIOCkPW5KLlTLtoQ/viewform?embedded=true";
+const GOOGLE_FORM_EMBED = "https://docs.google.com/forms/d/e/1FAIpQLSdysXIi5gVecLnlDpJ0UlpCsmo0e5brLuAIOCkPW5KLlTLtoQ/viewform?embedded=true&hl=en";
 const FORMSPREE_URL = "https://formspree.io/f/mqeveyjn";
 
 const FontLoader = () => {
@@ -276,13 +276,13 @@ const PricingSection = ({ onWaitlist }) => {
   const mobile = useIsMobile();
   const plans = {
     academies: [
-      { name: "Starter", price: "Free", period: "", sub: "Perfect for independent coaches.", features: ["List up to 3 active sessions", "7% transaction fee", "Basic attendance tracking", "Stripe payouts within 48h", "SquadLoop listing"], cta: "Get Listed Free" },
-      { name: "Growth", price: "AED 449", period: "/month", sub: "For academies scaling across schools.", highlight: true, features: ["Unlimited sessions", "7% transaction fee", "Priority search placement", "School facility booking", "Up to 5 coach accounts", "Analytics dashboard", "Verified Partner badge"], cta: "Start Free Trial" },
-      { name: "Elite", price: "AED 999", period: "/month", sub: "For multi-location academy groups.", features: ["Everything in Growth", "5.5% transaction fee", "Unlimited coaches", "CRM integration", "Compliance automation", "API access", "Dedicated account manager"], cta: "Contact Us" },
+      { name: "Starter", price: "Free", period: "", sub: "Perfect for independent coaches getting started.", features: ["List up to 3 active sessions", "9% transaction fee", "Basic attendance tracking", "Stripe payouts within 48h", "SquadLoop listing"], cta: "Get Listed Free" },
+      { name: "Growth", price: "AED 799", period: "/month", sub: "For academies scaling across multiple schools.", highlight: true, features: ["Unlimited sessions", "7% transaction fee", "Priority search placement", "School facility booking", "Up to 5 coach accounts", "Analytics dashboard", "Verified Partner badge"], cta: "Start Free Trial" },
+      { name: "Elite", price: "AED 1,499", period: "/month", sub: "For multi-location academy groups.", features: ["Everything in Growth", "5.5% transaction fee", "Unlimited coaches", "CRM integration", "Compliance automation", "API access", "Dedicated account manager"], cta: "Contact Us" },
     ],
     schools: [
       { name: "Free Partner", price: "Free", period: "", sub: "Zero setup cost. Start earning immediately.", features: ["Facility listing & booking", "10% revenue share", "Facility schedule dashboard", "Provider compliance checks", "Document vault"], cta: "Partner Your School" },
-      { name: "Campus Pro", price: "AED 699", period: "/month", sub: "Full visibility and optimised facility control.", highlight: true, features: ["Everything in Free Partner", "10% revenue share", "Live multi-facility dashboard", "Branded parent activity page", "Monthly utilisation report", "Priority provider matching"], cta: "Start Free Trial" },
+      { name: "Campus Pro", price: "AED 499", period: "/month", sub: "Full visibility and optimised facility control.", highlight: true, features: ["Everything in Free Partner", "8% revenue share", "Live multi-facility dashboard", "Branded parent activity page", "Monthly utilisation report", "Priority provider matching"], cta: "Start Free Trial" },
       { name: "Group Enterprise", price: "Custom", period: "", sub: "For school groups wanting a network deal.", features: ["Group-wide dashboard", "Negotiated revenue share", "Dedicated account manager", "MIS data sync", "Bulk provider contracting", "Custom branding & SLA"], cta: "Book a Demo" },
     ],
   };
@@ -321,27 +321,39 @@ const TrustSection = () => (
   </section>
 );
 
-const QuizSection = () => {
+const FeedbackSection = () => {
   const mobile = useIsMobile();
+  const [submitted, setSubmitted] = useState(false);
   return (
     <section id="quiz" style={{ background: C.obs, padding: "clamp(70px,10vw,120px) clamp(16px,5vw,80px)" }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <Eyebrow light>Find Your Fit</Eyebrow>
-          <SectionTitle light>Not sure where to start?<br />Take the quiz.</SectionTitle>
-          <SubText light style={{ marginBottom: 16 }}>Answer a few quick questions and we'll help you figure out exactly how SquadLoop works for you.</SubText>
+          <Eyebrow light>Share Your Feedback</Eyebrow>
+          <SectionTitle light>Help us build the right product.</SectionTitle>
+          <SubText light style={{ marginBottom: 16 }}>We're building SquadLoop for families like yours. Share your thoughts and help shape what we create — it takes under 60 seconds.</SubText>
           <GoldLine />
         </div>
-        <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, overflow: "hidden" }}>
-          <div style={{ background: `linear-gradient(90deg,${C.gold}22,${C.gold}08)`, padding: "16px 24px", display: "flex", alignItems: "center", gap: 12, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-            <span style={{ fontSize: 24 }}>✨</span>
-            <div>
-              <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 800, color: C.gold }}>SquadLoop Fit Quiz</div>
-              <div style={{ fontFamily: sans, fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Takes about 60 seconds · Helps us tailor your experience</div>
+        {submitted ? (
+          <div style={{ textAlign: "center", padding: "60px 20px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20 }}>
+            <div style={{ fontSize: 52, marginBottom: 16 }}>🙏</div>
+            <div style={{ fontFamily: serif, fontSize: 28, fontWeight: 600, color: C.chalk, marginBottom: 10 }}>Thank you for your feedback!</div>
+            <div style={{ fontFamily: sans, fontSize: 14, color: "rgba(255,255,255,0.45)", lineHeight: 1.7, maxWidth: 400, margin: "0 auto" }}>Your input helps us build something truly useful for Dubai families. We'll be in touch before launch.</div>
+          </div>
+        ) : (
+          <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, overflow: "hidden" }}>
+            <div style={{ background: `linear-gradient(90deg,${C.gold}22,${C.gold}08)`, padding: "16px 24px", display: "flex", alignItems: "center", gap: 12, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <span style={{ fontSize: 24 }}>✨</span>
+              <div>
+                <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 800, color: C.gold }}>Parent Feedback Form</div>
+                <div style={{ fontFamily: sans, fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Takes about 60 seconds · Shown once</div>
+              </div>
+            </div>
+            <iframe src={GOOGLE_FORM_EMBED} style={{ width: "100%", height: mobile ? 680 : 720, border: "none", display: "block" }} title="SquadLoop Parent Feedback" loading="lazy" />
+            <div style={{ padding: "16px 24px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "center", background: "rgba(0,0,0,0.2)" }}>
+              <button onClick={() => setSubmitted(true)} style={{ fontFamily: sans, fontWeight: 700, fontSize: 13, padding: "11px 28px", borderRadius: 10, background: C.gold, color: C.ink, border: "none", cursor: "pointer", boxShadow: `0 4px 16px ${C.gold}44` }}>I've submitted my feedback ✓</button>
             </div>
           </div>
-          <iframe src={GOOGLE_FORM_EMBED} style={{ width: "100%", height: mobile ? 680 : 720, border: "none", display: "block" }} title="SquadLoop Fit Quiz" loading="lazy" />
-        </div>
+        )}
       </div>
     </section>
   );
@@ -378,13 +390,13 @@ const ContactSection = () => {
             </div>
           </div>
           {status === "done" ? (
-            <div style={{ textAlign: "center", padding: "48px 20px", background: "rgba(255,255,255,0.03)", borderRadius: 18, border: "1px solid rgba(255,255,255,0.08)" }}>
+            <div id="contact-form" style={{ textAlign: "center", padding: "48px 20px", background: "rgba(255,255,255,0.03)", borderRadius: 18, border: "1px solid rgba(255,255,255,0.08)" }}>
               <div style={{ fontSize: 48, marginBottom: 14 }}>✅</div>
               <div style={{ fontFamily: serif, fontSize: 26, fontWeight: 600, color: C.chalk, marginBottom: 8 }}>Message received.</div>
               <div style={{ fontFamily: sans, fontSize: 14, color: "rgba(255,255,255,0.45)", lineHeight: 1.7 }}>We'll get back to you at {form.email} within 24 hours.</div>
             </div>
           ) : (
-            <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 18, padding: "clamp(22px,3vw,32px)", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <div id="contact-form" style={{ background: "rgba(255,255,255,0.03)", borderRadius: 18, padding: "clamp(22px,3vw,32px)", border: "1px solid rgba(255,255,255,0.08)" }}>
               {[{ label: "Full Name", key: "name", placeholder: "Your full name", type: "text" }, { label: "Email Address", key: "email", placeholder: "you@example.com", type: "email" }].map(f => (<div key={f.key} style={{ marginBottom: 14 }}><div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>{f.label}</div><input value={form[f.key]} onChange={e => set(f.key, e.target.value)} placeholder={f.placeholder} type={f.type} style={{ width: "100%", padding: "11px 14px", borderRadius: 9, border: "1.5px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.06)", fontFamily: sans, fontSize: 14, color: "#fff", boxSizing: "border-box", outline: "none" }} onFocus={e => e.target.style.borderColor = C.gold} onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} /></div>))}
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>I am a…</div>
@@ -414,7 +426,7 @@ const FinalCTA = ({ onWaitlist }) => (
       <p style={{ fontFamily: sans, fontSize: 15, color: "rgba(255,255,255,0.45)", lineHeight: 1.8, marginBottom: 32 }}>Founding members receive priority placement and reduced platform fees. Launching late 2026.</p>
       <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
         <GoldBtn onClick={onWaitlist}>Join the Waitlist →</GoldBtn>
-        <GhostBtn onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}>Get in Touch</GhostBtn>
+        <GhostBtn onClick={() => document.getElementById("contact-form")?.scrollIntoView({ behavior: "smooth" })}>Get in Touch</GhostBtn>
       </div>
     </div>
   </section>
@@ -435,7 +447,7 @@ const Footer = ({ onWaitlist }) => {
           <div style={{ display: "flex", gap: "clamp(24px,5vw,64px)", flexWrap: "wrap" }}>
             <div>
               <div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: C.gold, marginBottom: 14 }}>Platform</div>
-              {[["For Parents", "parents"], ["For Schools", "schools"], ["For Academies", "academies"], ["Pricing", "pricing"], ["Take the Quiz", "quiz"]].map(([l, id]) => (<div key={l} onClick={() => scrollTo(id)} style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,255,255,0.35)", marginBottom: 10, cursor: "pointer" }} onMouseEnter={e => e.target.style.color = "rgba(255,255,255,0.7)"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.35)"}>{l}</div>))}
+              {[["For Parents", "parents"], ["For Schools", "schools"], ["For Academies", "academies"], ["Pricing", "pricing"], ["Feedback", "quiz"]].map(([l, id]) => (<div key={l} onClick={() => scrollTo(id)} style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,255,255,0.35)", marginBottom: 10, cursor: "pointer" }} onMouseEnter={e => e.target.style.color = "rgba(255,255,255,0.7)"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.35)"}>{l}</div>))}
             </div>
             <div>
               <div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: C.gold, marginBottom: 14 }}>Company</div>
@@ -457,18 +469,55 @@ const Footer = ({ onWaitlist }) => {
 };
 
 const WaitlistModal = ({ onClose }) => {
-  const mobile = useIsMobile();
+  const [form, setForm] = useState({ name: "", email: "", role: "" });
+  const [status, setStatus] = useState("idle");
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const submit = async () => {
+    if (!form.name || !form.email || !form.role) return;
+    setStatus("sending");
+    try {
+      const res = await fetch(FORMSPREE_URL, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify({ ...form, _subject: `New Waitlist Signup: ${form.role} — ${form.name}` }) });
+      setStatus(res.ok ? "done" : "error");
+    } catch { setStatus("error"); }
+  };
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(8,18,31,0.9)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, backdropFilter: "blur(14px)" }} onClick={onClose}>
-      <div style={{ background: C.chalk, borderRadius: 22, width: "100%", maxWidth: 580, maxHeight: "90vh", boxShadow: "0 40px 100px rgba(0,0,0,0.5)", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }} onClick={e => e.stopPropagation()}>
-        <div style={{ background: C.navy, padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+      <div style={{ background: C.chalk, borderRadius: 22, width: "100%", maxWidth: 480, boxShadow: "0 40px 100px rgba(0,0,0,0.5)", overflow: "hidden" }} onClick={e => e.stopPropagation()}>
+        <div style={{ background: C.navy, padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.chalk }}>Join the Waitlist</div>
             <div style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>Launching late 2026 · Founding members get priority access</div>
           </div>
           <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", width: 36, height: 36, borderRadius: 9, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
         </div>
-        <iframe src={GOOGLE_FORM_EMBED} style={{ flex: 1, border: "none", width: "100%", minHeight: mobile ? 500 : 560 }} title="SquadLoop Waitlist" loading="lazy" />
+        <div style={{ padding: "28px 24px 32px" }}>
+          {status === "done" ? (
+            <div style={{ textAlign: "center", padding: "20px 0" }}>
+              <div style={{ fontSize: 52, marginBottom: 14 }}>🎉</div>
+              <div style={{ fontFamily: serif, fontSize: 26, fontWeight: 600, color: C.ink, marginBottom: 8 }}>You're on the list!</div>
+              <p style={{ fontFamily: sans, fontSize: 14, color: C.slate, lineHeight: 1.7, marginBottom: 24 }}>We'll be in touch before launch with your early access details. Welcome to SquadLoop.</p>
+              <GoldBtn onClick={onClose}>Back to site</GoldBtn>
+            </div>
+          ) : (
+            <>
+              <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, color: C.slate, letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>I am a…</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+                {[["👨‍👧", "Parent"], ["🏫", "School"], ["🏟️", "Academy / Coach"]].map(([ic, label]) => (
+                  <button key={label} onClick={() => set("role", label)} style={{ fontFamily: sans, fontWeight: 700, fontSize: 13, padding: "10px 16px", borderRadius: 10, border: `1.5px solid ${form.role === label ? C.gold : C.fog}`, background: form.role === label ? C.goldSoft : "transparent", color: form.role === label ? "#8B6510" : C.slate, cursor: "pointer", transition: "all 0.18s", display: "flex", alignItems: "center", gap: 6 }}>{ic} {label}</button>
+                ))}
+              </div>
+              {[{ label: "Full Name", key: "name", placeholder: "Your full name", type: "text" }, { label: "Email Address", key: "email", placeholder: "you@example.com", type: "email" }].map(f => (
+                <div key={f.key} style={{ marginBottom: 14 }}>
+                  <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, color: C.slate, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>{f.label}</div>
+                  <input value={form[f.key]} onChange={e => set(f.key, e.target.value)} placeholder={f.placeholder} type={f.type} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, border: `1.5px solid ${C.fog}`, fontFamily: sans, fontSize: 14, color: C.ink, background: C.mist, boxSizing: "border-box", outline: "none" }} onFocus={e => e.target.style.borderColor = C.gold} onBlur={e => e.target.style.borderColor = C.fog} />
+                </div>
+              ))}
+              {status === "error" && <div style={{ fontFamily: sans, fontSize: 12, color: C.red, marginBottom: 10 }}>Something went wrong. Please email hello@squadloop.ae</div>}
+              <GoldBtn onClick={submit} block style={{ marginTop: 8 }}>{status === "sending" ? "Securing your spot…" : "Secure My Spot →"}</GoldBtn>
+              <p style={{ fontFamily: sans, fontSize: 11, color: C.muted, textAlign: "center", marginTop: 12 }}>No spam. UAE PDPL compliant. Unsubscribe any time.</p>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -477,7 +526,7 @@ const WaitlistModal = ({ onClose }) => {
 const getBotReply = (msg) => {
   const q = msg.toLowerCase();
   if (q.match(/price|cost|how much|pricing|fee|aed|subscription|plan|tier/))
-    return "For parents, SquadLoop is free — you just pay per session. 🎓\n\nFor academies: Starter is free (7% fee), Growth is AED 449/month, Elite is AED 999/month (5.5% fee).\n\nFor schools: Free Partner plan or Campus Pro at AED 699/month. All plans have a 14-day free trial!";
+    return "For parents, SquadLoop is free — you just pay per session. 🎓\n\nFor academies: Starter is free (9% fee), Growth is AED 799/month (7% fee), Elite is AED 1,499/month (5.5% fee).\n\nFor schools: Free Partner plan or Campus Pro at AED 499/month (8% revenue share). All paid plans include a 14-day free trial!";
   if (q.match(/school|facility|facilit|venue|pitch|court|pool|campus/))
     return "Schools earn 90% of every facility rental — SquadLoop takes just 10%. 🏫 We handle all bookings, compliance checks, and payments. Every provider is KHDA-verified before they step on campus. Zero admin for your team!";
   if (q.match(/academy|coach|provider|list|session|class/))
@@ -498,7 +547,7 @@ const getBotReply = (msg) => {
     return "Hello! 👋 Great to meet you. I'm here to help with any questions about SquadLoop — pricing, how it works for parents, schools, or academies. What would you like to know?";
   if (q.match(/how|work|what is|about|explain|tell me/))
     return "SquadLoop is a premium sports activity marketplace for Dubai. 🏅 We connect three groups:\n\n👨‍👧 Parents — discover and book activities for their children\n🏫 Schools — monetise empty facilities after hours\n🏟️ Academies — reach premium school families and manage sessions\n\nAll in one elegant platform. Launching late 2026!";
-  return "Great question! For anything specific, please email us at hello@squadloop.ae and we'll get back to you within 24 hours. 😊 You can also scroll down to our Contact section or take our quick quiz to find out how SquadLoop fits your needs!";
+  return "Great question! For anything specific, please email us at hello@squadloop.ae and we'll get back to you within 24 hours. 😊 You can also scroll down to our Contact section and we'll get back to you quickly!";
 };
 
 const Chatbot = () => {
@@ -555,7 +604,7 @@ export default function SquadLoopLanding() {
       <AcademySection onWaitlist={open} />
       <PricingSection onWaitlist={open} />
       <TrustSection />
-      <QuizSection />
+      <FeedbackSection />
       <ContactSection />
       <FinalCTA onWaitlist={open} />
       <Footer onWaitlist={open} />
