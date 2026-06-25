@@ -7,7 +7,7 @@ const C = {
   ink:"#0D1B2A", slate:"#5A6B82", fog:"#E8EDF4", mist:"#F2F4F8",
   green:"#0A9E64", greenSoft:"#E0F5EC",
   blue:"#1658C8", blueSoft:"#E4EEFB",
-  muted:"#9aaabb", red:"#D42B2B",
+  muted:"#9aaabb",
 };
 const serif = "'Cormorant Garamond', Georgia, serif";
 const sans  = "'Plus Jakarta Sans', system-ui, sans-serif";
@@ -76,7 +76,7 @@ const PhoneMockup = () => {
           <div style={{ fontSize: 8, color: C.gold, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", fontFamily: sans, marginBottom: 2 }}>{p.role} View</div>
           <div style={{ fontSize: 12, fontWeight: 800, fontFamily: sans, lineHeight: 1.2 }}>{p.header.title}</div>
           <div style={{ fontSize: 9, opacity: 0.5, marginTop: 2, fontFamily: sans }}>{p.header.sub}</div>
-          {!p.stats && <div style={{ marginTop: 8, background: "rgba(255,255,255,0.1)", borderRadius: 7, padding: "6px 9px", fontSize: 9, color: "rgba(255,255,255,0.35)", fontFamily: sans }}>🔍 Search academies…</div>}
+          {!p.stats && <div style={{ marginTop: 8, background: "rgba(255,255,255,0.1)", borderRadius: 7, padding: "6px 9px", fontSize: 9, color: "rgba(255,255,255,0.35)", fontFamily: sans }}>🔍 Search activities…</div>}
           <div style={{ height: 10, background: "#F4F6FB", borderRadius: "10px 10px 0 0", margin: "10px -14px -2px" }} />
         </div>
         <div style={{ background: "#F4F6FB", padding: "6px 10px", overflowY: "hidden", maxHeight: 290 }}>
@@ -118,19 +118,21 @@ const Nav = ({ onWaitlist }) => {
   const mobile = useIsMobile();
   useEffect(() => { const h = () => setScrolled(window.scrollY > 60); window.addEventListener("scroll", h); return () => window.removeEventListener("scroll", h); }, []);
   const scrollTo = id => { document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }); setMenuOpen(false); };
-  const links = [["For Parents", "parents"], ["For Schools", "schools"], ["For Academies", "academies"], ["Pricing", "pricing"], ["Contact", "contact"]];
+  const links = [["For Parents", "parents"], ["For Schools", "schools"], ["For Providers", "academies"], ["Pricing", "pricing"], ["Contact", "contact"]];
   return (
-    <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000, background: scrolled || menuOpen ? "rgba(8,18,31,0.97)" : "transparent", backdropFilter: "blur(16px)", borderBottom: scrolled ? "1px solid rgba(255,255,255,0.07)" : "none", transition: "all 0.3s", padding: "0 clamp(16px,4vw,60px)" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
-        <div style={{ fontFamily: serif, fontSize: 22, fontWeight: 600, color: C.chalk, cursor: "pointer", letterSpacing: -0.3 }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>Squad<span style={{ color: C.gold }}>Loop</span></div>
-        {!mobile && (<div style={{ display: "flex", gap: 24, alignItems: "center" }}>{links.map(([l, id]) => (<button key={l} onClick={() => scrollTo(id)} style={{ fontFamily: sans, fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", background: "none", border: "none", cursor: "pointer", padding: 0, transition: "color 0.2s" }} onMouseEnter={e => e.target.style.color = "#fff"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.6)"}>{l}</button>))}</div>)}
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <GoldBtn onClick={onWaitlist} small>Join Waitlist</GoldBtn>
-          {mobile && (<button onClick={() => setMenuOpen(p => !p)} style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", width: 38, height: 38, borderRadius: 9, fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{menuOpen ? "✕" : "☰"}</button>)}
+    <>
+      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000, background: scrolled || menuOpen ? "rgba(8,18,31,0.97)" : "transparent", backdropFilter: "blur(16px)", borderBottom: scrolled ? "1px solid rgba(255,255,255,0.07)" : "none", transition: "all 0.3s", padding: "0 clamp(16px,4vw,60px)" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
+          <div style={{ fontFamily: serif, fontSize: 22, fontWeight: 600, color: C.chalk, cursor: "pointer", letterSpacing: -0.3 }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>Squad<span style={{ color: C.gold }}>Loop</span></div>
+          {!mobile && (<div style={{ display: "flex", gap: 24, alignItems: "center" }}>{links.map(([l, id]) => (<button key={l} onClick={() => scrollTo(id)} style={{ fontFamily: sans, fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", background: "none", border: "none", cursor: "pointer", padding: 0, transition: "color 0.2s" }} onMouseEnter={e => e.target.style.color = "#fff"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.6)"}>{l}</button>))}</div>)}
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <GoldBtn onClick={onWaitlist} small>Join Waitlist</GoldBtn>
+            {mobile && (<button onClick={() => setMenuOpen(p => !p)} style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", width: 38, height: 38, borderRadius: 9, fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{menuOpen ? "✕" : "☰"}</button>)}
+          </div>
         </div>
-      </div>
-      {mobile && menuOpen && (<div style={{ padding: "12px 20px 20px", display: "flex", flexDirection: "column", gap: 4 }}>{links.map(([l, id]) => (<button key={l} onClick={() => scrollTo(id)} style={{ fontFamily: sans, fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.7)", background: "none", border: "none", cursor: "pointer", padding: "10px 0", textAlign: "left", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>{l}</button>))}</div>)}
-    </nav>
+        {mobile && menuOpen && (<div style={{ padding: "12px 20px 20px", display: "flex", flexDirection: "column", gap: 4 }}>{links.map(([l, id]) => (<button key={l} onClick={() => scrollTo(id)} style={{ fontFamily: sans, fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.7)", background: "none", border: "none", cursor: "pointer", padding: "10px 0", textAlign: "left", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>{l}</button>))}</div>)}
+      </nav>
+    </>
   );
 };
 
@@ -146,7 +148,7 @@ const Hero = ({ onWaitlist }) => {
             <span style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, color: C.gold, letterSpacing: 1.8, textTransform: "uppercase" }}>Launching Dubai · Late 2026</span>
           </div>
           <h1 style={{ fontFamily: serif, fontSize: "clamp(36px,5.5vw,68px)", fontWeight: 600, color: C.chalk, lineHeight: 1.05, letterSpacing: -1, margin: "0 0 20px" }}>Every activity.<br />One <span style={{ color: C.gold, fontStyle: "italic" }}>elegant</span><br />platform.</h1>
-          <p style={{ fontFamily: sans, fontSize: "clamp(15px,1.8vw,17px)", color: "rgba(255,255,255,0.55)", lineHeight: 1.8, maxWidth: 460, marginBottom: 32 }}>SquadLoop connects Dubai's parents, schools, and sports academies — making it effortless to discover, book, and manage every after-school activity from one premium app.</p>
+          <p style={{ fontFamily: sans, fontSize: "clamp(15px,1.8vw,17px)", color: "rgba(255,255,255,0.55)", lineHeight: 1.8, maxWidth: 460, marginBottom: 32 }}>SquadLoop connects Dubai's parents, schools, and activity providers — making it effortless to discover, book, and manage every extracurricular activity from one premium app. Sports, music, STEM, arts, and beyond.</p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", marginBottom: 40 }}>
             <GoldBtn onClick={onWaitlist}>Get Early Access →</GoldBtn>
             <GhostBtn onClick={() => document.getElementById("how")?.scrollIntoView({ behavior: "smooth" })}>See How It Works</GhostBtn>
@@ -171,9 +173,9 @@ const PersonaStrip = ({ onWaitlist }) => (
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 20 }}>
         {[
-          { icon: "👨‍👧", label: "Parents", color: C.blue, soft: C.blueSoft, headline: "Everything your child does. In one place.", body: "Discover KHDA-approved sports academies near your school, book sessions quickly, manage multiple children, and pay securely — all from one app.", points: ["Browse by sport, area and age group", "Book and pay with ease", "Manage all your children's schedules", "Instant booking confirmation"], cta: "Join as a Parent" },
-          { icon: "🏫", label: "Schools", color: C.green, soft: C.greenSoft, headline: "Turn empty facilities into monthly income.", body: "Your pitches, courts, and pools sit idle after school hours. We connect you with vetted providers and handle every booking automatically.", points: ["Earn 90% of every facility rental", "Real-time facility schedule dashboard", "KHDA-vetted providers only", "Zero admin overhead for your team"], cta: "Partner Your School" },
-          { icon: "🏟️", label: "Academies & Coaches", color: "#8B6510", soft: C.goldSoft, headline: "Grow your academy. Get paid faster.", body: "List your sessions to premium school families, book school facilities on demand, and manage every class digitally.", points: ["Reach parents at top Dubai schools", "Book school venues directly in-app", "Digital attendance and roster tools", "Automated payouts via Stripe"], cta: "List Your Academy" },
+          { icon: "👨‍👧", label: "Parents", color: C.blue, soft: C.blueSoft, headline: "Every activity your child does. In one place.", body: "Discover KHDA-approved providers near your school — from football and swimming to music, STEM, arts, and more. Book, pay, and manage everything for all your children from one app.", points: ["Browse sports, music, STEM, arts & more", "Book and pay with ease", "Manage all your children's schedules", "Instant booking confirmation"], cta: "Join as a Parent" },
+          { icon: "🏫", label: "Schools", color: C.green, soft: C.greenSoft, headline: "Turn empty facilities into monthly income.", body: "Your halls, courts, studios, and labs sit idle after school hours. We connect you with vetted ECA providers and handle every booking, payment, and compliance check automatically.", points: ["Earn 90% of every facility rental", "Real-time facility schedule dashboard", "KHDA-vetted providers only", "Zero admin overhead for your team"], cta: "Partner Your School" },
+          { icon: "🏟️", label: "Academies & Providers", color: "#8B6510", soft: C.goldSoft, headline: "Grow your programme. Get paid faster.", body: "Whether you run a football academy, music school, coding club, or arts programme — list your sessions, book school venues, and manage every class digitally.", points: ["Reach parents at top Dubai schools", "Book school venues directly in-app", "Digital attendance and roster tools", "Automated payouts via Stripe"], cta: "List Your Programme" },
         ].map((card, i) => (
           <div key={i} style={{ background: C.chalk, borderRadius: 18, padding: "clamp(22px,3vw,34px)", border: `1px solid ${C.fog}`, boxShadow: "0 2px 12px rgba(13,27,42,0.05)", display: "flex", flexDirection: "column" }}>
             <div style={{ width: 50, height: 50, borderRadius: 13, background: card.soft, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 18 }}>{card.icon}</div>
@@ -193,10 +195,10 @@ const HowItWorks = () => {
   const [active, setActive] = useState(0);
   const mobile = useIsMobile();
   const steps = [
-    { n: "01", title: "Discover", body: "Browse a curated feed of KHDA-verified sports academies, filtered by your child's school, sport, age group, and location. Every provider is reviewed before going live.", icon: "🔍" },
+    { n: "01", title: "Discover", body: "Browse a curated feed of KHDA-verified ECA providers — sports, music, STEM, arts and more — filtered by your child's school, age group, and location. Every provider is reviewed before going live.", icon: "🔍" },
     { n: "02", title: "Book", body: "Select a session, confirm your child's details, and pay securely through Stripe. You'll receive an instant confirmation — no phone calls, no bank transfers.", icon: "📅" },
     { n: "03", title: "Manage", body: "Track upcoming sessions, payment history, and attendance records for every child in one dashboard. Reschedule or cancel with ease.", icon: "📊" },
-    { n: "04", title: "Enjoy", body: "Show up. Your child's coach already has their name on the digital roster. Attendance is marked in real time and you'll be notified when they're checked in.", icon: "✅" },
+    { n: "04", title: "Enjoy", body: "Show up. Your child's coach or instructor already has their name on the digital roster. Attendance is marked in real time and you'll be notified when they're checked in.", icon: "✅" },
   ];
   return (
     <section id="how" style={{ background: C.obs, padding: "clamp(70px,10vw,120px) clamp(16px,5vw,80px)" }}>
@@ -239,7 +241,7 @@ const SchoolSection = ({ onWaitlist }) => {
         <div>
           <Eyebrow>For Schools</Eyebrow>
           <h2 style={{ fontFamily: serif, fontSize: "clamp(26px,4vw,42px)", fontWeight: 600, color: C.ink, lineHeight: 1.1, margin: "0 0 14px" }}>Your facilities work for you — even after the bell rings.</h2>
-          <p style={{ fontFamily: sans, fontSize: 15, color: C.slate, lineHeight: 1.8, marginBottom: 28 }}>Your pitches, courts, and pools sit idle after school hours. SquadLoop connects you with fully vetted sports academies and automates every booking, payment, and compliance check.</p>
+          <p style={{ fontFamily: sans, fontSize: 15, color: C.slate, lineHeight: 1.8, marginBottom: 28 }}>Your halls, courts, studios, labs, and pools sit idle after school hours. SquadLoop connects you with fully vetted ECA providers — sports, music, STEM, arts — and automates every booking, payment, and compliance check.</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 18, marginBottom: 32 }}>{[{ icon: "💰", title: "Earn 90% of every rental", body: "Set your rates. We handle bookings from vetted providers. 90% of every fee goes directly to your school." }, { icon: "🛡️", title: "Every provider is KHDA-verified", body: "Trade license, insurance, and police clearance — all checked before any provider steps on campus." }, { icon: "📊", title: "Full oversight, zero effort", body: "A live dashboard shows you who's on campus, which space, and until when — from any device." }].map((f, i) => (<div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}><div style={{ width: 42, height: 42, borderRadius: 11, background: C.greenSoft, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19, flexShrink: 0 }}>{f.icon}</div><div><div style={{ fontFamily: sans, fontSize: 14, fontWeight: 700, color: C.ink, marginBottom: 3 }}>{f.title}</div><div style={{ fontFamily: sans, fontSize: 13, color: C.slate, lineHeight: 1.7 }}>{f.body}</div></div></div>))}</div>
           <GoldBtn onClick={onWaitlist}>Request a School Demo →</GoldBtn>
         </div>
@@ -254,11 +256,11 @@ const AcademySection = ({ onWaitlist }) => {
     <section id="academies" style={{ background: C.obs, padding: "clamp(70px,10vw,120px) clamp(16px,5vw,80px)" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "clamp(36px,6vw,100px)", alignItems: "center" }}>
         <div>
-          <Eyebrow light>For Academies & Coaches</Eyebrow>
-          <h2 style={{ fontFamily: serif, fontSize: "clamp(26px,4vw,42px)", fontWeight: 600, color: C.chalk, lineHeight: 1.1, margin: "0 0 14px" }}>Your academy, in front of the right families.</h2>
-          <p style={{ fontFamily: sans, fontSize: 15, color: "rgba(255,255,255,0.5)", lineHeight: 1.8, marginBottom: 28 }}>List your sessions, book school facilities on demand, and manage every class digitally — without juggling multiple tools.</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 18, marginBottom: 32 }}>{[{ icon: "📣", title: "Reach premium school families", body: "Your sessions appear in the feeds of parents at top Dubai schools, filtered by their child's age and location." }, { icon: "🏟️", title: "Book school venues on demand", body: "Find and book available pitches, courts, pools, and halls directly in the app." }, { icon: "✅", title: "Digital rosters and attendance", body: "Coaches manage sessions, mark attendance, and communicate with parents from one portal." }, { icon: "💸", title: "Automated payouts via Stripe", body: "93% of every booking hits your account automatically. No chasing invoices." }].map((f, i) => (<div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}><div style={{ width: 42, height: 42, borderRadius: 11, background: "rgba(200,168,75,0.12)", border: "1px solid rgba(200,168,75,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19, flexShrink: 0 }}>{f.icon}</div><div><div style={{ fontFamily: sans, fontSize: 14, fontWeight: 700, color: C.chalk, marginBottom: 3 }}>{f.title}</div><div style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.7 }}>{f.body}</div></div></div>))}</div>
-          <GoldBtn onClick={onWaitlist}>List Your Academy →</GoldBtn>
+          <Eyebrow light>For ECA Providers</Eyebrow>
+          <h2 style={{ fontFamily: serif, fontSize: "clamp(26px,4vw,42px)", fontWeight: 600, color: C.chalk, lineHeight: 1.1, margin: "0 0 14px" }}>Your programme, in front of the right families.</h2>
+          <p style={{ fontFamily: sans, fontSize: 15, color: "rgba(255,255,255,0.5)", lineHeight: 1.8, marginBottom: 28 }}>Whether you run a football academy, music school, coding club, robotics programme, or arts studio — list your sessions, book school venues, and manage every class from one place.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 18, marginBottom: 32 }}>{[{ icon: "📣", title: "Reach premium school families", body: "Your sessions appear in the feeds of parents at top Dubai schools, filtered by their child's age, area, and interests." }, { icon: "🏫", title: "Book school venues on demand", body: "Find and book available halls, courts, studios, labs, and pools directly in the app." }, { icon: "✅", title: "Digital rosters and attendance", body: "Coaches and instructors manage sessions, mark attendance, and communicate with parents from one portal." }, { icon: "💸", title: "Automated payouts via Stripe", body: "93% of every booking hits your account automatically. No chasing invoices." }].map((f, i) => (<div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}><div style={{ width: 42, height: 42, borderRadius: 11, background: "rgba(200,168,75,0.12)", border: "1px solid rgba(200,168,75,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19, flexShrink: 0 }}>{f.icon}</div><div><div style={{ fontFamily: sans, fontSize: 14, fontWeight: 700, color: C.chalk, marginBottom: 3 }}>{f.title}</div><div style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.7 }}>{f.body}</div></div></div>))}</div>
+          <GoldBtn onClick={onWaitlist}>List Your Programme →</GoldBtn>
         </div>
         {!mobile && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -299,7 +301,18 @@ const PricingSection = ({ onWaitlist }) => {
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(3,1fr)", gap: 16, alignItems: "start" }}>
-          {list.map(plan => (<div key={plan.name} style={{ background: plan.highlight ? "rgba(200,168,75,0.07)" : C.obs, borderRadius: 18, padding: "28px 22px", border: plan.highlight ? `1.5px solid ${C.gold}55` : "1px solid rgba(255,255,255,0.07)", display: "flex", flexDirection: "column", boxShadow: plan.highlight ? `0 8px 40px ${C.gold}18` : "none" }}><div style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: plan.highlight ? C.gold : C.chalk, marginBottom: 5 }}>{plan.name}</div><div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 7 }}><span style={{ fontFamily: sans, fontSize: plan.price === "Custom" ? 26 : 30, fontWeight: 800, color: C.chalk }}>{plan.price}</span>{plan.period && <span style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{plan.period}</span>}</div><p style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.6, marginBottom: 20 }}>{plan.sub}</p><div style={{ flex: 1, marginBottom: 24 }}>{plan.features.map((f, j) => (<div key={j} style={{ display: "flex", gap: 9, marginBottom: 9, alignItems: "flex-start" }}><span style={{ color: plan.highlight ? C.gold : C.green, flexShrink: 0, fontSize: 11, marginTop: 2 }}>✓</span><span style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>{f}</span></div>))}</div><button onClick={onWaitlist} style={{ fontFamily: sans, fontWeight: 700, fontSize: 13, padding: "12px 0", borderRadius: 10, cursor: "pointer", background: plan.highlight ? C.gold : "transparent", color: plan.highlight ? C.ink : "rgba(255,255,255,0.6)", border: plan.highlight ? "none" : "1px solid rgba(255,255,255,0.15)", transition: "all 0.2s", width: "100%" }} onMouseEnter={e => { if (!plan.highlight) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)"; e.currentTarget.style.color = "#fff"; } }} onMouseLeave={e => { if (!plan.highlight) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; e.currentTarget.style.color = "rgba(255,255,255,0.6)"; } }}>{plan.cta}</button></div>))}
+          {list.map(plan => (
+            <div key={plan.name} style={{ background: plan.highlight ? "rgba(200,168,75,0.07)" : C.obs, borderRadius: 18, padding: "28px 22px", border: plan.highlight ? `1.5px solid ${C.gold}55` : "1px solid rgba(255,255,255,0.07)", display: "flex", flexDirection: "column", boxShadow: plan.highlight ? `0 8px 40px ${C.gold}18` : "none" }}>
+              <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: plan.highlight ? C.gold : C.chalk, marginBottom: 5 }}>{plan.name}</div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 7 }}>
+                <span style={{ fontFamily: sans, fontSize: plan.price === "Custom" ? 26 : 30, fontWeight: 800, color: C.chalk }}>{plan.price}</span>
+                {plan.period && <span style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{plan.period}</span>}
+              </div>
+              <p style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.6, marginBottom: 20 }}>{plan.sub}</p>
+              <div style={{ flex: 1, marginBottom: 24 }}>{plan.features.map((f, j) => (<div key={j} style={{ display: "flex", gap: 9, marginBottom: 9, alignItems: "flex-start" }}><span style={{ color: plan.highlight ? C.gold : C.green, flexShrink: 0, fontSize: 11, marginTop: 2 }}>✓</span><span style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>{f}</span></div>))}</div>
+              <button onClick={onWaitlist} style={{ fontFamily: sans, fontWeight: 700, fontSize: 13, padding: "12px 0", borderRadius: 10, cursor: "pointer", background: plan.highlight ? C.gold : "transparent", color: plan.highlight ? C.ink : "rgba(255,255,255,0.6)", border: plan.highlight ? "none" : "1px solid rgba(255,255,255,0.15)", transition: "all 0.2s", width: "100%" }} onMouseEnter={e => { if (!plan.highlight) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)"; e.currentTarget.style.color = "#fff"; } }} onMouseLeave={e => { if (!plan.highlight) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; e.currentTarget.style.color = "rgba(255,255,255,0.6)"; } }}>{plan.cta}</button>
+            </div>
+          ))}
         </div>
         <p style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.25)", textAlign: "center", marginTop: 24 }}>No credit card required for free tiers. All paid plans include a 14-day free trial.</p>
       </div>
@@ -315,13 +328,13 @@ const TrustSection = () => (
       <SubText style={{ marginBottom: 14 }}>Operating with children in UAE schools means zero compromise on safeguarding, data protection, and regulatory standards.</SubText>
       <div style={{ marginBottom: 44 }}><GoldLine /></div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 14, textAlign: "left" }}>
-        {[{ icon: "🛡️", title: "UAE PDPL Compliant", body: "All child data protected under Federal Decree-Law No. 45/2021. Consent logged at onboarding. Data hosted on UAE servers." }, { icon: "✅", title: "KHDA Provider Checks", body: "Every academy uploads their trade license, insurance, and police clearance before going live on the platform." }, { icon: "⏰", title: "Auto Document Alerts", body: "Provider document expiry is monitored continuously. Expired certifications automatically suspend bookings." }, { icon: "💳", title: "Stripe Secured Payments", body: "We never hold your money. Stripe routes funds to each party instantly. Payment details never stored on our servers." }, { icon: "🏛️", title: "DTEC Licensed", body: "SquadLoop operates under a Dubai Silicon Oasis tech startup license — 100% foreign-owned, fully regulated." }, { icon: "👶", title: "Child Safeguarding", body: "Providers cannot access student directories. Rosters are visible only for sessions a child is enrolled in." }].map(c => (<div key={c.title} style={{ background: C.chalk, borderRadius: 13, padding: "20px 18px", border: `1px solid ${C.fog}`, boxShadow: "0 1px 8px rgba(13,27,42,0.04)" }}><div style={{ fontSize: 24, marginBottom: 9 }}>{c.icon}</div><div style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, color: C.ink, marginBottom: 7 }}>{c.title}</div><div style={{ fontFamily: sans, fontSize: 12, color: C.slate, lineHeight: 1.7 }}>{c.body}</div></div>))}
+        {[{ icon: "🛡️", title: "UAE PDPL Compliant", body: "All child data protected under Federal Decree-Law No. 45/2021. Consent logged at onboarding. Data hosted on UAE servers." }, { icon: "✅", title: "KHDA Provider Checks", body: "Every provider uploads their trade license, insurance, and police clearance before going live on the platform." }, { icon: "⏰", title: "Auto Document Alerts", body: "Provider document expiry is monitored continuously. Expired certifications automatically suspend bookings." }, { icon: "💳", title: "Stripe Secured Payments", body: "We never hold your money. Stripe routes funds to each party instantly. Payment details never stored on our servers." }, { icon: "🏛️", title: "DTEC Licensed", body: "SquadLoop operates under a Dubai Silicon Oasis tech startup license — 100% foreign-owned, fully regulated." }, { icon: "👶", title: "Child Safeguarding", body: "Providers cannot access student directories. Rosters are visible only for sessions a child is enrolled in." }].map(c => (<div key={c.title} style={{ background: C.chalk, borderRadius: 13, padding: "20px 18px", border: `1px solid ${C.fog}`, boxShadow: "0 1px 8px rgba(13,27,42,0.04)" }}><div style={{ fontSize: 24, marginBottom: 9 }}>{c.icon}</div><div style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, color: C.ink, marginBottom: 7 }}>{c.title}</div><div style={{ fontFamily: sans, fontSize: 12, color: C.slate, lineHeight: 1.7 }}>{c.body}</div></div>))}
       </div>
     </div>
   </section>
 );
 
-const FeedbackSection = () => {
+const QuizSection = () => {
   const mobile = useIsMobile();
   const [submitted, setSubmitted] = useState(false);
   return (
@@ -378,14 +391,14 @@ const ContactSection = () => {
         <div style={{ textAlign: "center", marginBottom: 44 }}>
           <Eyebrow light>Get in Touch</Eyebrow>
           <SectionTitle light>We'd love to hear from you.</SectionTitle>
-          <SubText light style={{ marginBottom: 16 }}>Whether you're a school, an academy, or a parent — reach out and we'll get back to you within 24 hours.</SubText>
+          <SubText light style={{ marginBottom: 16 }}>Whether you're a school, a provider, or a parent — reach out and we'll get back to you within 24 hours.</SubText>
           <GoldLine />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "clamp(32px,5vw,72px)", alignItems: "start" }}>
           <div>
             {[{ icon: "📧", label: "Email Us", value: "hello@squadloop.ae" }, { icon: "📍", label: "Based In", value: "Dubai, United Arab Emirates" }, { icon: "🚀", label: "Launching", value: "Late 2026" }].map((item, i) => (<div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 24 }}><div style={{ width: 46, height: 46, borderRadius: 12, background: "rgba(200,168,75,0.12)", border: `1px solid ${C.gold}33`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 21, flexShrink: 0 }}>{item.icon}</div><div><div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 3 }}>{item.label}</div><div style={{ fontFamily: sans, fontSize: 15, fontWeight: 600, color: C.chalk }}>{item.value}</div></div></div>))}
             <div style={{ padding: "18px", background: "rgba(200,168,75,0.08)", borderRadius: 13, border: `1px solid ${C.gold}25` }}>
-              <div style={{ fontFamily: sans, fontSize: 12, color: C.gold, fontWeight: 700, marginBottom: 5 }}>For Schools & Academies</div>
+              <div style={{ fontFamily: sans, fontSize: 12, color: C.gold, fontWeight: 700, marginBottom: 5 }}>For Schools & Providers</div>
               <div style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.7 }}>Interested in a partnership or demo? Fill in the form and we'll tailor our response to you.</div>
             </div>
           </div>
@@ -400,7 +413,7 @@ const ContactSection = () => {
               {[{ label: "Full Name", key: "name", placeholder: "Your full name", type: "text" }, { label: "Email Address", key: "email", placeholder: "you@example.com", type: "email" }].map(f => (<div key={f.key} style={{ marginBottom: 14 }}><div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>{f.label}</div><input value={form[f.key]} onChange={e => set(f.key, e.target.value)} placeholder={f.placeholder} type={f.type} style={{ width: "100%", padding: "11px 14px", borderRadius: 9, border: "1.5px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.06)", fontFamily: sans, fontSize: 14, color: "#fff", boxSizing: "border-box", outline: "none" }} onFocus={e => e.target.style.borderColor = C.gold} onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} /></div>))}
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>I am a…</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{["Parent", "School", "Academy / Coach"].map(r => (<button key={r} onClick={() => set("role", r)} style={{ fontFamily: sans, fontWeight: 700, fontSize: 12, padding: "7px 14px", borderRadius: 8, border: `1.5px solid ${form.role === r ? C.gold : "rgba(255,255,255,0.15)"}`, background: form.role === r ? "rgba(200,168,75,0.15)" : "transparent", color: form.role === r ? C.gold : "rgba(255,255,255,0.45)", cursor: "pointer", transition: "all 0.18s" }}>{r}</button>))}</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{["Parent", "School", "ECA Provider"].map(r => (<button key={r} onClick={() => set("role", r)} style={{ fontFamily: sans, fontWeight: 700, fontSize: 12, padding: "7px 14px", borderRadius: 8, border: `1.5px solid ${form.role === r ? C.gold : "rgba(255,255,255,0.15)"}`, background: form.role === r ? "rgba(200,168,75,0.15)" : "transparent", color: form.role === r ? C.gold : "rgba(255,255,255,0.45)", cursor: "pointer", transition: "all 0.18s" }}>{r}</button>))}</div>
               </div>
               <div style={{ marginBottom: 18 }}>
                 <div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>Message</div>
@@ -440,14 +453,14 @@ const Footer = ({ onWaitlist }) => {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 32, marginBottom: 40 }}>
           <div style={{ maxWidth: 240 }}>
             <div style={{ fontFamily: serif, fontSize: 22, fontWeight: 600, color: C.chalk, marginBottom: 10, cursor: "pointer" }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>Squad<span style={{ color: C.gold }}>Loop</span></div>
-            <p style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,255,255,0.35)", lineHeight: 1.7, marginBottom: 14 }}>Dubai's premium sports activity marketplace for parents, schools, and academies.</p>
+            <p style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,255,255,0.35)", lineHeight: 1.7, marginBottom: 14 }}>Dubai's premium extracurricular activity marketplace — connecting parents, schools, and providers across sports, music, STEM, arts, and more.</p>
             <div style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.3)" }}>hello@squadloop.ae</div>
             <div style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.3)", marginTop: 3 }}>Dubai, United Arab Emirates</div>
           </div>
           <div style={{ display: "flex", gap: "clamp(24px,5vw,64px)", flexWrap: "wrap" }}>
             <div>
               <div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: C.gold, marginBottom: 14 }}>Platform</div>
-              {[["For Parents", "parents"], ["For Schools", "schools"], ["For Academies", "academies"], ["Pricing", "pricing"], ["Feedback", "quiz"]].map(([l, id]) => (<div key={l} onClick={() => scrollTo(id)} style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,255,255,0.35)", marginBottom: 10, cursor: "pointer" }} onMouseEnter={e => e.target.style.color = "rgba(255,255,255,0.7)"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.35)"}>{l}</div>))}
+              {[["For Parents", "parents"], ["For Schools", "schools"], ["For Providers", "academies"], ["Pricing", "pricing"], ["Feedback", "quiz"]].map(([l, id]) => (<div key={l} onClick={() => scrollTo(id)} style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,255,255,0.35)", marginBottom: 10, cursor: "pointer" }} onMouseEnter={e => e.target.style.color = "rgba(255,255,255,0.7)"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.35)"}>{l}</div>))}
             </div>
             <div>
               <div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: C.gold, marginBottom: 14 }}>Company</div>
@@ -502,7 +515,7 @@ const WaitlistModal = ({ onClose }) => {
             <>
               <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, color: C.slate, letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>I am a…</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
-                {[["👨‍👧", "Parent"], ["🏫", "School"], ["🏟️", "Academy / Coach"]].map(([ic, label]) => (
+                {[["👨‍👧", "Parent"], ["🏫", "School"], ["🎯", "ECA Provider"]].map(([ic, label]) => (
                   <button key={label} onClick={() => set("role", label)} style={{ fontFamily: sans, fontWeight: 700, fontSize: 13, padding: "10px 16px", borderRadius: 10, border: `1.5px solid ${form.role === label ? C.gold : C.fog}`, background: form.role === label ? C.goldSoft : "transparent", color: form.role === label ? "#8B6510" : C.slate, cursor: "pointer", transition: "all 0.18s", display: "flex", alignItems: "center", gap: 6 }}>{ic} {label}</button>
                 ))}
               </div>
@@ -512,7 +525,7 @@ const WaitlistModal = ({ onClose }) => {
                   <input value={form[f.key]} onChange={e => set(f.key, e.target.value)} placeholder={f.placeholder} type={f.type} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, border: `1.5px solid ${C.fog}`, fontFamily: sans, fontSize: 14, color: C.ink, background: C.mist, boxSizing: "border-box", outline: "none" }} onFocus={e => e.target.style.borderColor = C.gold} onBlur={e => e.target.style.borderColor = C.fog} />
                 </div>
               ))}
-              {status === "error" && <div style={{ fontFamily: sans, fontSize: 12, color: C.red, marginBottom: 10 }}>Something went wrong. Please email hello@squadloop.ae</div>}
+              {status === "error" && <div style={{ fontFamily: sans, fontSize: 12, color: "#D42B2B", marginBottom: 10 }}>Something went wrong. Please email hello@squadloop.ae</div>}
               <GoldBtn onClick={submit} block style={{ marginTop: 8 }}>{status === "sending" ? "Securing your spot…" : "Secure My Spot →"}</GoldBtn>
               <p style={{ fontFamily: sans, fontSize: 11, color: C.muted, textAlign: "center", marginTop: 12 }}>No spam. UAE PDPL compliant. Unsubscribe any time.</p>
             </>
@@ -526,28 +539,28 @@ const WaitlistModal = ({ onClose }) => {
 const getBotReply = (msg) => {
   const q = msg.toLowerCase();
   if (q.match(/price|cost|how much|pricing|fee|aed|subscription|plan|tier/))
-    return "For parents, SquadLoop is free — you just pay per session. 🎓\n\nFor academies: Starter is free (9% fee), Growth is AED 799/month (7% fee), Elite is AED 1,499/month (5.5% fee).\n\nFor schools: Free Partner plan or Campus Pro at AED 499/month (8% revenue share). All paid plans include a 14-day free trial!";
-  if (q.match(/school|facility|facilit|venue|pitch|court|pool|campus/))
+    return "For parents, SquadLoop is free — you just pay per session. 🎓\n\nFor academies/providers: Starter is free (9% fee), Growth is AED 799/month (7% fee), Elite is AED 1,499/month (5.5% fee).\n\nFor schools: Free Partner plan or Campus Pro at AED 499/month (8% revenue share). All paid plans include a 14-day free trial!";
+  if (q.match(/school|facility|facilit|venue|pitch|court|pool|campus|hall|studio|lab/))
     return "Schools earn 90% of every facility rental — SquadLoop takes just 10%. 🏫 We handle all bookings, compliance checks, and payments. Every provider is KHDA-verified before they step on campus. Zero admin for your team!";
-  if (q.match(/academy|coach|provider|list|session|class/))
-    return "Academies can list sessions, book school venues directly in-app, manage rosters and attendance digitally, and receive automated payouts via Stripe. 93% of every booking goes straight to you. Start free with the Starter plan! 🏟️";
+  if (q.match(/academy|coach|provider|list|session|class|music|stem|art|coding|robot|programme/))
+    return "SquadLoop is for ALL ECA providers — not just sports! 🎯 Football academies, music schools, coding clubs, robotics programmes, arts studios — list your sessions, book school venues, manage rosters, and receive automated Stripe payouts. 93% of every booking goes straight to you.";
   if (q.match(/parent|book|child|kid|sport|activity|discover|find/))
-    return "Parents can browse KHDA-verified academies by sport, area, and age group — then book and pay in just a few taps. 👨‍👧 Manage all your children's activities in one place. Sports include Football, Swimming, Tennis, Basketball, Martial Arts, and more. Free to use!";
+    return "Parents can browse KHDA-verified providers by activity type, area, and age group — then book and pay in just a few taps. 👨‍👧 SquadLoop covers everything: Football, Swimming, Tennis, Basketball, Martial Arts, Music, STEM, Coding, Robotics, Arts, Gymnastics, and more. Free to use!";
   if (q.match(/safe|khda|pdpl|compliance|legal|regulated|data|privacy/))
     return "SquadLoop is built with compliance at its core. ✅ We're UAE PDPL compliant, KHDA-verified providers only, DTEC licensed in Dubai Silicon Oasis, and Stripe-secured for all payments. Child safeguarding is built into every layer of the platform.";
   if (q.match(/launch|when|available|open|start|ready/))
     return "We're launching in Dubai in late 2026! 🚀 Join the waitlist now to get priority access and founding member benefits — including reduced platform fees. Tap the gold 'Join Waitlist' button at the top of the page.";
-  if (q.match(/contact|email|reach|talk|call|speak|hello/))
+  if (q.match(/contact|email|reach|talk|call|speak/))
     return "You can reach us at hello@squadloop.ae and we'll get back to you within 24 hours. 📧 Or scroll down to our Contact section and fill in the form directly on this page!";
   if (q.match(/stripe|pay|payment|payout|money|transfer/))
-    return "All payments are handled securely by Stripe. 💳 Parents pay per session through the app. Academies receive 93% of every booking automatically. Schools receive 90% of every facility rental. We never hold funds.";
+    return "All payments are handled securely by Stripe. 💳 Parents pay per session through the app. Providers receive 93% of every booking automatically. Schools receive 90% of every facility rental. We never hold funds.";
   if (q.match(/waitlist|sign up|register|join|early access/))
     return "Tap the gold 'Join Waitlist' button at the top of the page! 🌟 Founding members get priority placement and reduced platform fees when we launch in late 2026.";
   if (q.match(/hi|hello|hey|morning|evening|good/))
-    return "Hello! 👋 Great to meet you. I'm here to help with any questions about SquadLoop — pricing, how it works for parents, schools, or academies. What would you like to know?";
+    return "Hello! 👋 Great to meet you. I'm here to help with any questions about SquadLoop — pricing, how it works for parents, schools, or ECA providers. What would you like to know?";
   if (q.match(/how|work|what is|about|explain|tell me/))
-    return "SquadLoop is a premium sports activity marketplace for Dubai. 🏅 We connect three groups:\n\n👨‍👧 Parents — discover and book activities for their children\n🏫 Schools — monetise empty facilities after hours\n🏟️ Academies — reach premium school families and manage sessions\n\nAll in one elegant platform. Launching late 2026!";
-  return "Great question! For anything specific, please email us at hello@squadloop.ae and we'll get back to you within 24 hours. 😊 You can also scroll down to our Contact section and we'll get back to you quickly!";
+    return "SquadLoop is Dubai's premium extracurricular activity marketplace. 🏅 We connect:\n\n👨‍👧 Parents — discover and book any ECA for their children\n🏫 Schools — monetise empty facilities after hours\n🎯 Providers — reach school families across sports, music, STEM, arts & more\n\nAll in one elegant platform. Launching late 2026!";
+  return "Great question! For anything specific, please email us at hello@squadloop.ae and we'll get back to you within 24 hours. 😊 You can also scroll down to our Contact section!";
 };
 
 const Chatbot = () => {
@@ -604,7 +617,7 @@ export default function SquadLoopLanding() {
       <AcademySection onWaitlist={open} />
       <PricingSection onWaitlist={open} />
       <TrustSection />
-      <FeedbackSection />
+      <QuizSection />
       <ContactSection />
       <FinalCTA onWaitlist={open} />
       <Footer onWaitlist={open} />
