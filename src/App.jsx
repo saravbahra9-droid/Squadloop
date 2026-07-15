@@ -126,6 +126,77 @@ const PhoneMockup = () => {
   );
 };
 
+const StarMark = ({ size = "0.42em", animate = false }) => (
+  <span aria-hidden="true" style={{ position: "absolute", top: "-0.04em", right: "-0.36em", width: size, height: size, display: "block", transformOrigin: "center", ...(animate ? { animation: "slStarIn 0.95s cubic-bezier(.34,1.56,.64,1) 0.3s both" } : {}) }}>
+    <svg viewBox="0 0 24 24" width="100%" height="100%" style={{ display: "block" }}>
+      <defs>
+        <linearGradient id="slStarGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={C.goldL} />
+          <stop offset="1" stopColor={C.gold} />
+        </linearGradient>
+      </defs>
+      <path d="M12 0 C12.7 7.5 16.5 11.3 24 12 C16.5 12.7 12.7 16.5 12 24 C11.3 16.5 7.5 12.7 0 12 C7.5 11.3 11.3 7.5 12 0 Z" fill="url(#slStarGrad)" />
+    </svg>
+  </span>
+);
+
+const Wordmark = ({ animateStar = false }) => (
+  <span style={{ position: "relative", display: "inline-block", fontFamily: serif, fontWeight: 600, lineHeight: 1, letterSpacing: -0.5, whiteSpace: "nowrap" }}>
+    <span style={{ color: C.chalk }}>Squad</span><span style={{ color: C.gold }}>Loop</span>
+    <StarMark animate={animateStar} />
+  </span>
+);
+
+// Big centered logo on load; star flies in, then the whole lockup scales down
+// and docks into the top-left nav corner as the user scrolls through the hero.
+const ScrollLogo = () => {
+  const reduced = usePrefersReducedMotion();
+  const innerRef = useRef(null);
+  const logoRef = useRef(null);
+  const [p, setP] = useState(0);
+  const [big, setBig] = useState({ dx: 0, dy: 0, s: 1 });
+
+  const recompute = () => {
+    const inner = innerRef.current, logo = logoRef.current;
+    if (!inner || !logo) return;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const contLeft = inner.getBoundingClientRect().left;
+    const natW = logo.offsetWidth || 120;
+    const mobile = vw < 768;
+    const targetW = Math.min(vw * (mobile ? 0.74 : 0.42), mobile ? 400 : 520);
+    const s = Math.max(1, targetW / natW);
+    const yTarget = vh * (mobile ? 0.115 : 0.135);
+    setBig({ dx: (vw - natW * s) / 2 - contLeft, dy: yTarget - 32, s });
+  };
+
+  useEffect(() => {
+    recompute();
+    const onResize = () => recompute();
+    window.addEventListener("resize", onResize);
+    const t = setTimeout(recompute, 450); // re-measure once the serif font loads
+    return () => { window.removeEventListener("resize", onResize); clearTimeout(t); };
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => setP(Math.min(1, Math.max(0, window.scrollY / (window.innerHeight * 0.5))));
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const prog = reduced ? 1 : p;
+  const cx = big.dx * (1 - prog), cy = big.dy * (1 - prog), cScale = big.s + (1 - big.s) * prog;
+  return (
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1001, padding: "0 clamp(16px,4vw,60px)", pointerEvents: "none" }}>
+      <div ref={innerRef} style={{ maxWidth: 1200, margin: "0 auto", height: 64, display: "flex", alignItems: "center" }}>
+        <div ref={logoRef} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ fontSize: 22, cursor: "pointer", pointerEvents: "auto", transformOrigin: "left center", transform: `translate(${cx}px, ${cy}px) scale(${cScale})`, willChange: "transform", filter: prog < 0.98 ? "drop-shadow(0 12px 34px rgba(0,0,0,0.35))" : "none" }}>
+          <Wordmark animateStar={!reduced} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Nav = ({ onWaitlist }) => {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -137,7 +208,7 @@ const Nav = ({ onWaitlist }) => {
     <>
       <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000, background: scrolled || menuOpen ? "rgba(8,18,31,0.97)" : "transparent", backdropFilter: "blur(16px)", borderBottom: scrolled ? "1px solid rgba(255,255,255,0.07)" : "none", transition: "all 0.3s", padding: "0 clamp(16px,4vw,60px)" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
-          <div style={{ fontFamily: serif, fontSize: 22, fontWeight: 600, color: C.chalk, cursor: "pointer", letterSpacing: -0.3 }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>Squad<span style={{ color: C.gold }}>Loop</span></div>
+          <div aria-hidden="true" style={{ fontFamily: serif, fontSize: 22, fontWeight: 600, color: C.chalk, letterSpacing: -0.5, visibility: "hidden" }}>Squad<span style={{ color: C.gold }}>Loop</span></div>
           {!mobile && (<div style={{ display: "flex", gap: 24, alignItems: "center" }}>{links.map(([l, id]) => (<button key={l} onClick={() => scrollTo(id)} style={{ fontFamily: sans, fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", background: "none", border: "none", cursor: "pointer", padding: 0, transition: "color 0.2s" }} onMouseEnter={e => e.target.style.color = "#fff"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.6)"}>{l}</button>))}</div>)}
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <GoldBtn onClick={onWaitlist} small>Join Waitlist</GoldBtn>
@@ -153,7 +224,7 @@ const Nav = ({ onWaitlist }) => {
 const Hero = ({ onWaitlist }) => {
   const mobile = useIsMobile();
   return (
-    <section style={{ background: `linear-gradient(160deg,${C.obs} 0%,${C.mid} 60%,#122040 100%)`, minHeight: "100vh", display: "flex", alignItems: "center", padding: `100px clamp(16px,5vw,80px) 80px`, position: "relative", overflow: "hidden" }}>
+    <section style={{ background: `linear-gradient(160deg,${C.obs} 0%,${C.mid} 60%,#122040 100%)`, minHeight: "100vh", display: "flex", alignItems: "center", padding: `clamp(180px,26vh,300px) clamp(16px,5vw,80px) 80px`, position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", top: 0, right: 0, width: "55%", height: "100%", background: `radial-gradient(ellipse at 80% 40%,${C.gold}0a,transparent 60%)`, pointerEvents: "none" }} />
       <div style={{ maxWidth: 1200, margin: "0 auto", width: "100%", display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "clamp(40px,6vw,100px)", alignItems: "center" }}>
         <div>
@@ -631,6 +702,7 @@ export default function SquadLoopLanding() {
     <div style={{ margin: 0, padding: 0, fontFamily: sans, overflowX: "hidden" }}>
       <FontLoader />
       <Nav onWaitlist={open} />
+      <ScrollLogo />
       <Hero onWaitlist={open} />
       <PersonaStrip onWaitlist={open} />
       <HowItWorks />

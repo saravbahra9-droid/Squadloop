@@ -17,14 +17,14 @@
     <meta property="og:description" content="Discover, book, and manage every after-school activity from one premium app — sports, music, STEM, arts and more. Launching Dubai, late 2026." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://squadloop.ae" />
-    <meta property="og:image" content="https://squadloop.ae/favicon.svg" />
+    <meta property="og:image" content="https://squadloop.ae/logo.png" />
     <meta property="og:locale" content="en_AE" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="SquadLoop UAE — Every Activity. One Platform." />
     <meta name="twitter:description" content="Discover, book, and manage every after-school activity in Dubai from one premium app. Launching late 2026." />
-    <meta name="twitter:image" content="https://squadloop.ae/favicon.svg" />
+    <meta name="twitter:image" content="https://squadloop.ae/logo.png" />
 
     <style>
       *, *::before, *::after { box-sizing: border-box; }
@@ -32,6 +32,11 @@
       body { margin: 0; padding: 0; background: #08121F; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
       :focus-visible { outline: 2px solid #C8A84B; outline-offset: 2px; border-radius: 4px; }
       ::selection { background: rgba(200,168,75,0.3); }
+      @keyframes slStarIn {
+        0%   { opacity: 0; transform: translate(52px, -40px) scale(0.15) rotate(-140deg); }
+        65%  { opacity: 1; transform: translate(-4px, 3px) scale(1.18) rotate(10deg); }
+        100% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0); }
+      }
       @media (prefers-reduced-motion: reduce) {
         html { scroll-behavior: auto; }
         *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
