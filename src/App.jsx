@@ -147,9 +147,40 @@ const Wordmark = ({ animateStar = false }) => (
   </span>
 );
 
-// Big centered logo on load; star flies in, then the whole lockup scales down
-// and docks into the top-left nav corner as the user scrolls through the hero.
-const ScrollLogo = () => {
+// Cinematic page-load intro (mirrors the SquadLoop app's start screen): a gold
+// glow blooms, the star spins into place, "SquadLoop" rises with its tracking
+// tightening, a gold rule draws, a tagline fades in — then it dissolves.
+const IntroSplash = ({ onDone }) => {
+  const [bye, setBye] = useState(false);
+  const done = useRef(false);
+  const finish = () => {
+    if (done.current) return;
+    done.current = true;
+    setBye(true);
+    setTimeout(onDone, 650);
+  };
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden"; // lock scroll so nothing moves under the intro
+    const timer = setTimeout(finish, 2450);
+    return () => { clearTimeout(timer); document.body.style.overflow = prev; };
+  }, []);
+  return (
+    <div id="sl-intro" className={bye ? "bye" : ""} onClick={finish}>
+      <div className="sl-glow" />
+      <div className="sl-intro-inner">
+        <svg className="sl-istar" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 5.6c.2.6.7 1.1 1.3 1.3L21 11l-5.8 1.9c-.6.2-1.1.7-1.3 1.3L12 20l-1.9-5.6c-.2-.6-.7-1.1-1.3-1.3L3 11l5.8-1.9c.6-.2 1.1-.7 1.3-1.3z" /></svg>
+        <div className="sl-iword"><span className="t"><span className="sq">Squad</span><span className="lo">Loop</span></span></div>
+        <div className="sl-irule" />
+        <div className="sl-itag">Every activity · One place</div>
+      </div>
+    </div>
+  );
+};
+
+// Logo docks into the top-left nav corner as the user scrolls through the hero.
+// Hidden until the intro finishes, then it fades into place.
+const ScrollLogo = ({ introDone = true }) => {
   const reduced = usePrefersReducedMotion();
   const innerRef = useRef(null);
   const logoRef = useRef(null);
@@ -189,8 +220,8 @@ const ScrollLogo = () => {
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1001, padding: "0 clamp(16px,4vw,60px)", pointerEvents: "none" }}>
       <div ref={innerRef} style={{ maxWidth: 1200, margin: "0 auto", height: 64, display: "flex", alignItems: "center" }}>
-        <div ref={logoRef} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ fontSize: 22, cursor: "pointer", pointerEvents: "auto", transformOrigin: "left center", transform: `translate(${cx}px, ${cy}px) scale(${cScale})`, willChange: "transform", filter: prog < 0.98 ? "drop-shadow(0 12px 34px rgba(0,0,0,0.35))" : "none" }}>
-          <Wordmark animateStar={!reduced} />
+        <div ref={logoRef} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ fontSize: 22, cursor: "pointer", pointerEvents: "auto", opacity: introDone ? 1 : 0, transition: "opacity 0.6s ease", transformOrigin: "left center", transform: `translate(${cx}px, ${cy}px) scale(${cScale})`, willChange: "transform", filter: prog < 0.98 ? "drop-shadow(0 12px 34px rgba(0,0,0,0.35))" : "none" }}>
+          <Wordmark animateStar={false} />
         </div>
       </div>
     </div>
@@ -696,13 +727,21 @@ const Chatbot = () => {
 
 export default function SquadLoopLanding() {
   const [showModal, setShowModal] = useState(false);
+  const [introDone, setIntroDone] = useState(() => {
+    try {
+      if (sessionStorage.getItem("sl_intro")) return true;
+      if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return true;
+    } catch { /* no-op */ }
+    return false;
+  });
+  const finishIntro = () => { try { sessionStorage.setItem("sl_intro", "1"); } catch { /* no-op */ } setIntroDone(true); };
   const open = () => setShowModal(true);
   const close = () => setShowModal(false);
   return (
     <div style={{ margin: 0, padding: 0, fontFamily: sans, overflowX: "hidden" }}>
-      <FontLoader />
+      {!introDone && <IntroSplash onDone={finishIntro} />}
       <Nav onWaitlist={open} />
-      <ScrollLogo />
+      <ScrollLogo introDone={introDone} />
       <Hero onWaitlist={open} />
       <PersonaStrip onWaitlist={open} />
       <HowItWorks />
