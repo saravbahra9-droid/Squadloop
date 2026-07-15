@@ -34,6 +34,19 @@ const useIsMobile = () => {
   return mobile;
 };
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const usePrefersReducedMotion = () => {
+  const [reduced, setReduced] = useState(() => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const h = () => setReduced(mq.matches);
+    mq.addEventListener("change", h);
+    return () => mq.removeEventListener("change", h);
+  }, []);
+  return reduced;
+};
+
 const GoldLine = () => (
   <div style={{ width: 60, height: 2, background: `linear-gradient(90deg,${C.gold},${C.goldL})`, borderRadius: 2, margin: "0 auto" }} />
 );
@@ -60,12 +73,13 @@ const GhostBtn = ({ children, onClick }) => (
 const PhoneMockup = () => {
   const [phase, setPhase] = useState(0);
   const [fade, setFade] = useState(true);
+  const reduced = usePrefersReducedMotion();
   const phases = [
     { role: "Parent", header: { bg: `linear-gradient(160deg,${C.navy},#1C3060)`, title: "Good morning, Saif 👋", sub: "Dubai Sports City · 3 activities upcoming" }, cards: [{ name: "Al Nasr FC", sport: "⚽ Football", price: "AED 120", slots: "3 slots", rating: "★ 4.9", bc: C.gold }, { name: "Aqua Sharks", sport: "🏊 Swimming", price: "AED 95", slots: "7 slots", rating: "★ 4.7", bc: C.blue }, { name: "Emirates Tennis", sport: "🎾 Tennis", price: "AED 180", slots: "2 slots", rating: "★ 4.8", bc: "#C8302A" }], nav: [["🏠", "Home"], ["🔍", "Explore"], ["🗓", "Bookings"], ["👤", "Profile"]] },
     { role: "School", header: { bg: `linear-gradient(160deg,#0D1F3C,#1A3A5C)`, title: "GEMS Wellington", sub: "Enterprise Portal · Dubai Sports City" }, stats: [{ l: "Students", v: "1,204" }, { l: "Partners", v: "8" }, { l: "Facilities", v: "3/5" }], grid: [{ time: "07:00", slots: [{ n: "Al Nasr", c: C.blue }, null, { n: "Aqua Club", c: C.green }] }, { time: "09:00", slots: [null, { n: "Emirates", c: C.gold }, null] }, { time: "15:00", slots: [{ n: "Al Nasr", c: C.blue }, { n: "Emirates", c: C.gold }, null] }], nav: [["📊", "Dashboard"], ["🗓", "Schedule"], ["🤝", "Partners"], ["📋", "Reports"]] },
     { role: "Provider", header: { bg: `linear-gradient(160deg,${C.navy},#1C3060)`, title: "Al Nasr FC Academy", sub: "Coach Portal · Coach Khalid" }, metrics: [{ icon: "💰", l: "Revenue", v: "AED 840" }, { icon: "🪑", l: "Slots", v: "6" }, { icon: "✅", l: "Check-Ins", v: "9" }], sessions: [{ title: "U10 Football", time: "4:00 PM", pct: 88, live: true }, { title: "Teen Training", time: "5:30 PM", pct: 75, live: false }, { title: "Advanced Drills", time: "7:00 PM", pct: 60, live: false }], nav: [["🏠", "Home"], ["🗓", "Sessions"], ["👥", "Roster"], ["📈", "Analytics"]] },
   ];
-  useEffect(() => { const t = setInterval(() => { setFade(false); setTimeout(() => { setPhase(p => (p + 1) % 3); setFade(true); }, 350); }, 4000); return () => clearInterval(t); }, []);
+  useEffect(() => { if (reduced) return; const t = setInterval(() => { setFade(false); setTimeout(() => { setPhase(p => (p + 1) % 3); setFade(true); }, 350); }, 4000); return () => clearInterval(t); }, [reduced]);
   const p = phases[phase];
   return (
     <div style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center", paddingBottom: 40 }}>
@@ -127,7 +141,7 @@ const Nav = ({ onWaitlist }) => {
           {!mobile && (<div style={{ display: "flex", gap: 24, alignItems: "center" }}>{links.map(([l, id]) => (<button key={l} onClick={() => scrollTo(id)} style={{ fontFamily: sans, fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", background: "none", border: "none", cursor: "pointer", padding: 0, transition: "color 0.2s" }} onMouseEnter={e => e.target.style.color = "#fff"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.6)"}>{l}</button>))}</div>)}
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <GoldBtn onClick={onWaitlist} small>Join Waitlist</GoldBtn>
-            {mobile && (<button onClick={() => setMenuOpen(p => !p)} style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", width: 38, height: 38, borderRadius: 9, fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{menuOpen ? "✕" : "☰"}</button>)}
+            {mobile && (<button onClick={() => setMenuOpen(p => !p)} aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", width: 38, height: 38, borderRadius: 9, fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{menuOpen ? "✕" : "☰"}</button>)}
           </div>
         </div>
         {mobile && menuOpen && (<div style={{ padding: "12px 20px 20px", display: "flex", flexDirection: "column", gap: 4 }}>{links.map(([l, id]) => (<button key={l} onClick={() => scrollTo(id)} style={{ fontFamily: sans, fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.7)", background: "none", border: "none", cursor: "pointer", padding: "10px 0", textAlign: "left", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>{l}</button>))}</div>)}
@@ -378,7 +392,7 @@ const ContactSection = () => {
   const mobile = useIsMobile();
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const submit = async () => {
-    if (!form.name || !form.email || !form.message) return;
+    if (!form.name.trim() || !form.message.trim() || !EMAIL_RE.test(form.email.trim())) { setStatus("invalid"); return; }
     setStatus("sending");
     try {
       const res = await fetch(FORMSPREE_URL, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(form) });
@@ -419,6 +433,7 @@ const ContactSection = () => {
                 <div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>Message</div>
                 <textarea value={form.message} onChange={e => set("message", e.target.value)} placeholder="Tell us how we can help…" rows={4} style={{ width: "100%", padding: "11px 14px", borderRadius: 9, border: "1.5px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.06)", fontFamily: sans, fontSize: 14, color: "#fff", boxSizing: "border-box", outline: "none", resize: "vertical" }} onFocus={e => e.target.style.borderColor = C.gold} onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} />
               </div>
+              {status === "invalid" && <div style={{ fontFamily: sans, fontSize: 12, color: "#ff6b6b", marginBottom: 10 }}>Please enter your name, a valid email address, and a message.</div>}
               {status === "error" && <div style={{ fontFamily: sans, fontSize: 12, color: "#ff6b6b", marginBottom: 10 }}>Something went wrong. Please email hello@squadloop.ae directly.</div>}
               <GoldBtn onClick={submit} block>{status === "sending" ? "Sending…" : "Send Message →"}</GoldBtn>
               <div style={{ fontFamily: sans, fontSize: 11, color: "rgba(255,255,255,0.25)", textAlign: "center", marginTop: 10 }}>We respond within 24 hours · UAE PDPL compliant</div>
@@ -485,8 +500,13 @@ const WaitlistModal = ({ onClose }) => {
   const [form, setForm] = useState({ name: "", email: "", role: "" });
   const [status, setStatus] = useState("idle");
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  useEffect(() => {
+    const h = e => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
   const submit = async () => {
-    if (!form.name || !form.email || !form.role) return;
+    if (!form.role || !form.name.trim() || !EMAIL_RE.test(form.email.trim())) { setStatus("invalid"); return; }
     setStatus("sending");
     try {
       const res = await fetch(FORMSPREE_URL, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify({ ...form, _subject: `New Waitlist Signup: ${form.role} — ${form.name}` }) });
@@ -495,13 +515,13 @@ const WaitlistModal = ({ onClose }) => {
   };
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(8,18,31,0.9)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, backdropFilter: "blur(14px)" }} onClick={onClose}>
-      <div style={{ background: C.chalk, borderRadius: 22, width: "100%", maxWidth: 480, boxShadow: "0 40px 100px rgba(0,0,0,0.5)", overflow: "hidden" }} onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-label="Join the SquadLoop waitlist" style={{ background: C.chalk, borderRadius: 22, width: "100%", maxWidth: 480, boxShadow: "0 40px 100px rgba(0,0,0,0.5)", overflow: "hidden" }} onClick={e => e.stopPropagation()}>
         <div style={{ background: C.navy, padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.chalk }}>Join the Waitlist</div>
             <div style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>Launching late 2026 · Founding members get priority access</div>
           </div>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", width: 36, height: 36, borderRadius: 9, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
+          <button onClick={onClose} aria-label="Close" style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", width: 36, height: 36, borderRadius: 9, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
         </div>
         <div style={{ padding: "28px 24px 32px" }}>
           {status === "done" ? (
@@ -525,6 +545,7 @@ const WaitlistModal = ({ onClose }) => {
                   <input value={form[f.key]} onChange={e => set(f.key, e.target.value)} placeholder={f.placeholder} type={f.type} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, border: `1.5px solid ${C.fog}`, fontFamily: sans, fontSize: 14, color: C.ink, background: C.mist, boxSizing: "border-box", outline: "none" }} onFocus={e => e.target.style.borderColor = C.gold} onBlur={e => e.target.style.borderColor = C.fog} />
                 </div>
               ))}
+              {status === "invalid" && <div style={{ fontFamily: sans, fontSize: 12, color: "#D42B2B", marginBottom: 10 }}>Please pick a role, enter your name, and a valid email address.</div>}
               {status === "error" && <div style={{ fontFamily: sans, fontSize: 12, color: "#D42B2B", marginBottom: 10 }}>Something went wrong. Please email hello@squadloop.ae</div>}
               <GoldBtn onClick={submit} block style={{ marginTop: 8 }}>{status === "sending" ? "Securing your spot…" : "Secure My Spot →"}</GoldBtn>
               <p style={{ fontFamily: sans, fontSize: 11, color: C.muted, textAlign: "center", marginTop: 12 }}>No spam. UAE PDPL compliant. Unsubscribe any time.</p>
@@ -579,13 +600,13 @@ const Chatbot = () => {
   const suggestions = ["What's the pricing?", "How does it work for schools?", "When are you launching?", "I'm a parent"];
   return (
     <>
-      <button onClick={() => setOpen(p => !p)} style={{ position: "fixed", bottom: 24, right: 24, zIndex: 2000, width: 58, height: 58, borderRadius: "50%", background: C.gold, border: "none", cursor: "pointer", boxShadow: `0 8px 28px ${C.gold}66`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, transition: "transform 0.2s" }} onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>{open ? "✕" : "💬"}</button>
+      <button onClick={() => setOpen(p => !p)} aria-label={open ? "Close chat assistant" : "Open chat assistant"} aria-expanded={open} style={{ position: "fixed", bottom: 24, right: 24, zIndex: 2000, width: 58, height: 58, borderRadius: "50%", background: C.gold, border: "none", cursor: "pointer", boxShadow: `0 8px 28px ${C.gold}66`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, transition: "transform 0.2s" }} onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>{open ? "✕" : "💬"}</button>
       {open && (
         <div style={{ position: "fixed", bottom: 94, right: 24, zIndex: 1999, width: "min(340px, calc(100vw - 32px))", maxHeight: "min(500px, calc(100vh - 120px))", background: C.chalk, borderRadius: 18, boxShadow: "0 20px 60px rgba(9,21,42,0.25)", display: "flex", flexDirection: "column", overflow: "hidden", border: `1px solid ${C.fog}` }}>
           <div style={{ background: C.navy, padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
             <div style={{ width: 34, height: 34, borderRadius: "50%", background: C.gold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: C.ink, flexShrink: 0 }}>S</div>
             <div><div style={{ fontFamily: sans, fontSize: 13, fontWeight: 800, color: "#fff" }}>SquadLoop Assistant</div><div style={{ fontFamily: sans, fontSize: 10, color: "rgba(255,255,255,0.4)" }}>Ask me anything · Always here</div></div>
-            <button onClick={() => setOpen(false)} style={{ marginLeft: "auto", background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", width: 28, height: 28, borderRadius: 7, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
+            <button onClick={() => setOpen(false)} aria-label="Close chat" style={{ marginLeft: "auto", background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", width: 28, height: 28, borderRadius: 7, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
           </div>
           <div style={{ flex: 1, overflowY: "auto", padding: "14px 12px", display: "flex", flexDirection: "column", gap: 9 }}>
             {messages.map((m, i) => (<div key={i} style={{ display: "flex", justifyContent: m.from === "user" ? "flex-end" : "flex-start" }}><div style={{ maxWidth: "86%", background: m.from === "user" ? C.navy : C.mist, color: m.from === "user" ? "#fff" : C.ink, borderRadius: m.from === "user" ? "13px 13px 4px 13px" : "13px 13px 13px 4px", padding: "9px 13px", fontFamily: sans, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-line" }}>{m.text}</div></div>))}
@@ -593,8 +614,8 @@ const Chatbot = () => {
             <div ref={bottomRef} />
           </div>
           <div style={{ padding: "10px 12px", borderTop: `1px solid ${C.fog}`, display: "flex", gap: 8, flexShrink: 0 }}>
-            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Ask anything about SquadLoop…" style={{ flex: 1, padding: "9px 13px", borderRadius: 9, border: `1.5px solid ${C.fog}`, fontFamily: sans, fontSize: 13, color: C.ink, background: C.mist, outline: "none" }} onFocus={e => e.target.style.borderColor = C.gold} onBlur={e => e.target.style.borderColor = C.fog} />
-            <button onClick={send} style={{ width: 38, height: 38, borderRadius: 9, background: C.gold, border: "none", cursor: "pointer", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>→</button>
+            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Ask anything about SquadLoop…" aria-label="Ask the SquadLoop assistant a question" style={{ flex: 1, padding: "9px 13px", borderRadius: 9, border: `1.5px solid ${C.fog}`, fontFamily: sans, fontSize: 13, color: C.ink, background: C.mist, outline: "none" }} onFocus={e => e.target.style.borderColor = C.gold} onBlur={e => e.target.style.borderColor = C.fog} />
+            <button onClick={send} aria-label="Send message" style={{ width: 38, height: 38, borderRadius: 9, background: C.gold, border: "none", cursor: "pointer", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>→</button>
           </div>
         </div>
       )}
