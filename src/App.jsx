@@ -126,65 +126,28 @@ const PhoneMockup = () => {
   );
 };
 
-const StarMark = ({ size = "0.42em", animate = false }) => (
-  <span aria-hidden="true" style={{ position: "absolute", top: "-0.04em", right: "-0.36em", width: size, height: size, display: "block", transformOrigin: "center", ...(animate ? { animation: "slStarIn 0.95s cubic-bezier(.34,1.56,.64,1) 0.3s both" } : {}) }}>
-    <svg viewBox="0 0 24 24" width="100%" height="100%" style={{ display: "block" }}>
-      <defs>
-        <linearGradient id="slStarGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor={C.goldL} />
-          <stop offset="1" stopColor={C.gold} />
-        </linearGradient>
-      </defs>
-      <path d="M12 0 C12.7 7.5 16.5 11.3 24 12 C16.5 12.7 12.7 16.5 12 24 C11.3 16.5 7.5 12.7 0 12 C7.5 11.3 11.3 7.5 12 0 Z" fill="url(#slStarGrad)" />
-    </svg>
-  </span>
-);
-
-const Wordmark = ({ animateStar = false }) => (
-  <span style={{ position: "relative", display: "inline-block", fontFamily: serif, fontWeight: 600, lineHeight: 1, letterSpacing: -0.5, whiteSpace: "nowrap" }}>
-    <span style={{ color: C.chalk }}>Squad</span><span style={{ color: C.gold }}>Loop</span>
-    <StarMark animate={animateStar} />
-  </span>
-);
-
-// Cinematic page-load intro (mirrors the SquadLoop app's start screen): a gold
-// glow blooms, the star spins into place, "SquadLoop" rises with its tracking
-// tightening, a gold rule draws, a tagline fades in — then it dissolves.
-const IntroSplash = ({ onDone }) => {
-  const [bye, setBye] = useState(false);
-  const done = useRef(false);
-  const finish = () => {
-    if (done.current) return;
-    done.current = true;
-    setBye(true);
-    setTimeout(onDone, 650);
-  };
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden"; // lock scroll so nothing moves under the intro
-    const timer = setTimeout(finish, 2450);
-    return () => { clearTimeout(timer); document.body.style.overflow = prev; };
-  }, []);
-  return (
-    <div id="sl-intro" className={bye ? "bye" : ""} onClick={finish}>
-      <div className="sl-glow" />
-      <div className="sl-intro-inner">
-        <svg className="sl-istar" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 5.6c.2.6.7 1.1 1.3 1.3L21 11l-5.8 1.9c-.6.2-1.1.7-1.3 1.3L12 20l-1.9-5.6c-.2-.6-.7-1.1-1.3-1.3L3 11l5.8-1.9c.6-.2 1.1-.7 1.3-1.3z" /></svg>
-        <div className="sl-iword"><span className="t"><span className="sq">Squad</span><span className="lo">Loop</span></span></div>
-        <div className="sl-irule" />
-        <div className="sl-itag">Every activity · One place</div>
+// The blue intro "curtain": a full-screen navy panel that stays pinned (sticky)
+// while the user scrolls the first screen — the logo travels over it — then it
+// scrolls up to reveal the page. Pure CSS pin; the runway is 200vh so the panel
+// is pinned for exactly one viewport of scroll.
+const BlueIntro = ({ prog }) => (
+  <div style={{ height: "200vh", position: "relative" }} aria-hidden="true">
+    <div style={{ position: "sticky", top: 0, height: "100vh", overflow: "hidden", background: "radial-gradient(ellipse at 72% 16%, rgba(200,168,75,0.10), transparent 58%), linear-gradient(160deg,#08121F 0%,#0F2040 68%,#122040 100%)" }}>
+      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "min(80vw, 900px)", height: "min(50vw, 520px)", borderRadius: "50%", background: `radial-gradient(ellipse, ${C.gold}14, transparent 62%)`, filter: "blur(6px)", opacity: Math.max(0, 1 - prog * 1.6), pointerEvents: "none" }} />
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 34, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, opacity: Math.max(0, 1 - prog * 5), transition: "opacity 0.15s linear", pointerEvents: "none" }}>
+        <span style={{ fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: "rgba(255,255,255,0.4)" }}>Scroll</span>
+        <span style={{ color: C.gold, fontSize: 18, lineHeight: 1, animation: "slBounce 1.6s ease-in-out infinite" }}>⌄</span>
       </div>
     </div>
-  );
-};
+  </div>
+);
 
-// Logo docks into the top-left nav corner as the user scrolls through the hero.
-// Hidden until the intro finishes, then it fades into place.
-const ScrollLogo = ({ introDone = true }) => {
-  const reduced = usePrefersReducedMotion();
+// Scroll-scrubbed logo: at prog 0 it sits large and centered on the blue panel;
+// as prog → 1 it shrinks and travels into the top-left nav corner. Driven
+// entirely by scroll position (prog), never auto-played.
+const ScrollLogo = ({ prog = 1 }) => {
   const innerRef = useRef(null);
   const logoRef = useRef(null);
-  const [p, setP] = useState(0);
   const [big, setBig] = useState({ dx: 0, dy: 0, s: 1 });
 
   const recompute = () => {
@@ -194,41 +157,35 @@ const ScrollLogo = ({ introDone = true }) => {
     const contLeft = inner.getBoundingClientRect().left;
     const natW = logo.offsetWidth || 120;
     const mobile = vw < 768;
-    const targetW = Math.min(vw * (mobile ? 0.74 : 0.42), mobile ? 400 : 520);
+    const targetW = Math.min(vw * (mobile ? 0.82 : 0.6), mobile ? 460 : 720);
     const s = Math.max(1, targetW / natW);
-    const yTarget = vh * (mobile ? 0.115 : 0.135);
-    setBig({ dx: (vw - natW * s) / 2 - contLeft, dy: yTarget - 32, s });
+    // start centered on the blue screen (both axes); end docked in the nav
+    setBig({ dx: (vw - natW * s) / 2 - contLeft, dy: vh * 0.5 - 32, s });
   };
 
   useEffect(() => {
     recompute();
     const onResize = () => recompute();
     window.addEventListener("resize", onResize);
-    const t = setTimeout(recompute, 450); // re-measure once the serif font loads
-    return () => { window.removeEventListener("resize", onResize); clearTimeout(t); };
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  useEffect(() => {
-    const onScroll = () => setP(Math.min(1, Math.max(0, window.scrollY / (window.innerHeight * 0.5))));
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  const prog = reduced ? 1 : p;
-  const cx = big.dx * (1 - prog), cy = big.dy * (1 - prog), cScale = big.s + (1 - big.s) * prog;
+  // ease the scrub so the dock feels weighted rather than linear
+  const e = prog < 0.5 ? 2 * prog * prog : 1 - Math.pow(-2 * prog + 2, 2) / 2;
+  const cx = big.dx * (1 - e), cy = big.dy * (1 - e), cScale = big.s + (1 - big.s) * e;
+  const glow = Math.max(0, 1 - e * 1.4); // gold aura, strongest while centered
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1001, padding: "0 clamp(16px,4vw,60px)", pointerEvents: "none" }}>
       <div ref={innerRef} style={{ maxWidth: 1200, margin: "0 auto", height: 64, display: "flex", alignItems: "center" }}>
-        <div ref={logoRef} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ fontSize: 22, cursor: "pointer", pointerEvents: "auto", opacity: introDone ? 1 : 0, transition: "opacity 0.6s ease", transformOrigin: "left center", transform: `translate(${cx}px, ${cy}px) scale(${cScale})`, willChange: "transform", filter: prog < 0.98 ? "drop-shadow(0 12px 34px rgba(0,0,0,0.35))" : "none" }}>
-          <Wordmark animateStar={false} />
+        <div ref={logoRef} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ cursor: "pointer", pointerEvents: "auto", transformOrigin: "left center", transform: `translate(${cx}px, ${cy}px) scale(${cScale})`, willChange: "transform", filter: `drop-shadow(0 0 ${Math.round(26 * glow)}px rgba(200,168,75,${(0.4 * glow).toFixed(2)}))${e < 0.95 ? " drop-shadow(0 14px 40px rgba(0,0,0,0.4))" : ""}` }}>
+          <img src="/logo-mark.png" alt="SquadLoop" onLoad={recompute} style={{ height: 34, width: "auto", display: "block" }} />
         </div>
       </div>
     </div>
   );
 };
 
-const Nav = ({ onWaitlist }) => {
+const Nav = ({ onWaitlist, hidden = false }) => {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const mobile = useIsMobile();
@@ -237,9 +194,9 @@ const Nav = ({ onWaitlist }) => {
   const links = [["For Parents", "parents"], ["For Schools", "schools"], ["For Providers", "academies"], ["Pricing", "pricing"], ["Contact", "contact"]];
   return (
     <>
-      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000, background: scrolled || menuOpen ? "rgba(8,18,31,0.97)" : "transparent", backdropFilter: "blur(16px)", borderBottom: scrolled ? "1px solid rgba(255,255,255,0.07)" : "none", transition: "all 0.3s", padding: "0 clamp(16px,4vw,60px)" }}>
+      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000, background: scrolled || menuOpen ? "rgba(8,18,31,0.97)" : "transparent", backdropFilter: "blur(16px)", borderBottom: scrolled ? "1px solid rgba(255,255,255,0.07)" : "none", transition: "all 0.3s", padding: "0 clamp(16px,4vw,60px)", opacity: hidden ? 0 : 1, pointerEvents: hidden ? "none" : "auto" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
-          <div aria-hidden="true" style={{ fontFamily: serif, fontSize: 22, fontWeight: 600, color: C.chalk, letterSpacing: -0.5, visibility: "hidden" }}>Squad<span style={{ color: C.gold }}>Loop</span></div>
+          <img src="/logo-mark.png" alt="" aria-hidden="true" style={{ height: 34, width: "auto", visibility: "hidden" }} />
           {!mobile && (<div style={{ display: "flex", gap: 24, alignItems: "center" }}>{links.map(([l, id]) => (<button key={l} onClick={() => scrollTo(id)} style={{ fontFamily: sans, fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", background: "none", border: "none", cursor: "pointer", padding: 0, transition: "color 0.2s" }} onMouseEnter={e => e.target.style.color = "#fff"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.6)"}>{l}</button>))}</div>)}
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <GoldBtn onClick={onWaitlist} small>Join Waitlist</GoldBtn>
@@ -255,7 +212,7 @@ const Nav = ({ onWaitlist }) => {
 const Hero = ({ onWaitlist }) => {
   const mobile = useIsMobile();
   return (
-    <section style={{ background: `linear-gradient(160deg,${C.obs} 0%,${C.mid} 60%,#122040 100%)`, minHeight: "100vh", display: "flex", alignItems: "center", padding: `clamp(180px,26vh,300px) clamp(16px,5vw,80px) 80px`, position: "relative", overflow: "hidden" }}>
+    <section style={{ background: `linear-gradient(160deg,${C.obs} 0%,${C.mid} 60%,#122040 100%)`, minHeight: "100vh", display: "flex", alignItems: "center", padding: `100px clamp(16px,5vw,80px) 80px`, position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", top: 0, right: 0, width: "55%", height: "100%", background: `radial-gradient(ellipse at 80% 40%,${C.gold}0a,transparent 60%)`, pointerEvents: "none" }} />
       <div style={{ maxWidth: 1200, margin: "0 auto", width: "100%", display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "clamp(40px,6vw,100px)", alignItems: "center" }}>
         <div>
@@ -569,7 +526,7 @@ const Footer = ({ onWaitlist }) => {
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 32, marginBottom: 40 }}>
           <div style={{ maxWidth: 240 }}>
-            <div style={{ fontFamily: serif, fontSize: 22, fontWeight: 600, color: C.chalk, marginBottom: 10, cursor: "pointer" }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>Squad<span style={{ color: C.gold }}>Loop</span></div>
+            <img src="/logo-mark.png" alt="SquadLoop" style={{ height: 30, width: "auto", display: "block", marginBottom: 12, cursor: "pointer" }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
             <p style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,255,255,0.35)", lineHeight: 1.7, marginBottom: 14 }}>Dubai's premium extracurricular activity marketplace — connecting parents, schools, and providers across sports, music, STEM, arts, and more.</p>
             <div style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.3)" }}>hello@squadloop.ae</div>
             <div style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.3)", marginTop: 3 }}>Dubai, United Arab Emirates</div>
@@ -686,7 +643,7 @@ const getBotReply = (msg) => {
   return "Great question! For anything specific, please email us at hello@squadloop.ae and we'll get back to you within 24 hours. 😊 You can also scroll down to our Contact section!";
 };
 
-const Chatbot = () => {
+const Chatbot = ({ hidden = false }) => {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([{ from: "bot", text: "Hi! I'm the SquadLoop assistant 👋\n\nAsk me anything about the platform — pricing, how it works, or how to get involved!" }]);
   const [input, setInput] = useState("");
@@ -702,7 +659,7 @@ const Chatbot = () => {
   const suggestions = ["What's the pricing?", "How does it work for schools?", "When are you launching?", "I'm a parent"];
   return (
     <>
-      <button onClick={() => setOpen(p => !p)} aria-label={open ? "Close chat assistant" : "Open chat assistant"} aria-expanded={open} style={{ position: "fixed", bottom: 24, right: 24, zIndex: 2000, width: 58, height: 58, borderRadius: "50%", background: C.gold, border: "none", cursor: "pointer", boxShadow: `0 8px 28px ${C.gold}66`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, transition: "transform 0.2s" }} onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>{open ? "✕" : "💬"}</button>
+      <button onClick={() => setOpen(p => !p)} aria-label={open ? "Close chat assistant" : "Open chat assistant"} aria-expanded={open} style={{ position: "fixed", bottom: 24, right: 24, zIndex: 2000, width: 58, height: 58, borderRadius: "50%", background: C.gold, border: "none", cursor: "pointer", boxShadow: `0 8px 28px ${C.gold}66`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, transition: "transform 0.2s, opacity 0.4s", opacity: hidden ? 0 : 1, pointerEvents: hidden ? "none" : "auto" }} onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>{open ? "✕" : "💬"}</button>
       {open && (
         <div style={{ position: "fixed", bottom: 94, right: 24, zIndex: 1999, width: "min(340px, calc(100vw - 32px))", maxHeight: "min(500px, calc(100vh - 120px))", background: C.chalk, borderRadius: 18, boxShadow: "0 20px 60px rgba(9,21,42,0.25)", display: "flex", flexDirection: "column", overflow: "hidden", border: `1px solid ${C.fog}` }}>
           <div style={{ background: C.navy, padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
@@ -727,21 +684,34 @@ const Chatbot = () => {
 
 export default function SquadLoopLanding() {
   const [showModal, setShowModal] = useState(false);
-  const [introDone, setIntroDone] = useState(() => {
-    try {
-      if (sessionStorage.getItem("sl_intro")) return true;
-      if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return true;
-    } catch { /* no-op */ }
-    return false;
-  });
-  const finishIntro = () => { try { sessionStorage.setItem("sl_intro", "1"); } catch { /* no-op */ } setIntroDone(true); };
+  const reduced = usePrefersReducedMotion();
+  const [prog, setProg] = useState(0);
+
+  // Always begin at the top so the blue intro plays from the start on every load.
+  useEffect(() => {
+    if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+  }, []);
+
+  // Scroll progress over the first viewport drives the whole intro (0 → docked).
+  useEffect(() => {
+    if (reduced) { setProg(1); return; }
+    const onScroll = () => setProg(Math.min(1, Math.max(0, window.scrollY / window.innerHeight)));
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => { window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); };
+  }, [reduced]);
+
+  const intro = !reduced;               // whether the blue curtain exists
+  const chromeHidden = intro && prog < 0.92; // hide nav + chatbot until the curtain lifts
   const open = () => setShowModal(true);
   const close = () => setShowModal(false);
   return (
-    <div style={{ margin: 0, padding: 0, fontFamily: sans, overflowX: "hidden" }}>
-      {!introDone && <IntroSplash onDone={finishIntro} />}
-      <Nav onWaitlist={open} />
-      <ScrollLogo introDone={introDone} />
+    <div style={{ margin: 0, padding: 0, fontFamily: sans }}>
+      {intro && <BlueIntro prog={prog} />}
+      <Nav onWaitlist={open} hidden={chromeHidden} />
+      <ScrollLogo prog={reduced ? 1 : prog} />
       <Hero onWaitlist={open} />
       <PersonaStrip onWaitlist={open} />
       <HowItWorks />
@@ -754,7 +724,7 @@ export default function SquadLoopLanding() {
       <FinalCTA onWaitlist={open} />
       <Footer onWaitlist={open} />
       {showModal && <WaitlistModal onClose={close} />}
-      <Chatbot />
+      <Chatbot hidden={chromeHidden} />
     </div>
   );
 }
