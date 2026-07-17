@@ -147,8 +147,13 @@ const SPARKS = [
   { x: 21, y: 84, s: 6,  d: 4.4, del: 1.8, drift: 90, o: 0.5 },
 ];
 
+// Fraction of a viewport of scrolling over which the logo docks. The curtain
+// runway is sized so it starts lifting the instant the dock completes —
+// no dead stretch of empty blue in between.
+const INTRO_PIN = 0.55;
+
 const BlueIntro = ({ prog }) => (
-  <div style={{ height: "200vh", position: "relative" }} aria-hidden="true">
+  <div style={{ height: `${100 + INTRO_PIN * 100}vh`, position: "relative" }} aria-hidden="true">
     <div className="sl-curtain" style={{ position: "sticky", top: 0, overflow: "hidden", background: "radial-gradient(ellipse at 72% 16%, rgba(200,168,75,0.10), transparent 58%), linear-gradient(160deg,#08121F 0%,#0F2040 68%,#122040 100%)" }}>
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "min(84vw, 960px)", height: "min(54vw, 560px)", borderRadius: "50%", background: `radial-gradient(ellipse, ${C.gold}1a, transparent 60%)`, filter: "blur(8px)", opacity: Math.max(0, 1 - prog * 1.6), pointerEvents: "none" }} />
       {SPARKS.map((sp, i) => (
@@ -720,10 +725,10 @@ export default function SquadLoopLanding() {
   // momentum instead of stepping on each discrete scroll event.
   useEffect(() => {
     if (reduced) { setProg(1); return; }
-    let raf, cur = Math.min(1, Math.max(0, window.scrollY / window.innerHeight));
+    let raf, cur = Math.min(1, Math.max(0, window.scrollY / (window.innerHeight * INTRO_PIN)));
     setProg(cur);
     const tick = () => {
-      const target = Math.min(1, Math.max(0, window.scrollY / window.innerHeight));
+      const target = Math.min(1, Math.max(0, window.scrollY / (window.innerHeight * INTRO_PIN)));
       cur += (target - cur) * 0.14;
       if (Math.abs(target - cur) < 0.0008) cur = target;
       setProg(p => (p === cur ? p : cur));
