@@ -36,6 +36,12 @@
       :focus-visible { outline: 2px solid #C8A84B; outline-offset: 2px; border-radius: 4px; }
       ::selection { background: rgba(200,168,75,0.3); }
       @keyframes slBounce { 0%, 100% { transform: translateY(0); opacity: 0.6; } 50% { transform: translateY(7px); opacity: 1; } }
+      @keyframes slTwinkle {
+        0%, 100% { opacity: 0.12; transform: scale(0.55) rotate(0deg); }
+        50%      { opacity: 0.95; transform: scale(1.15) rotate(18deg); }
+      }
+      .sl-curtain { height: 100vh; }
+      @supports (height: 100dvh) { .sl-curtain { height: 100dvh; } }
       @media (prefers-reduced-motion: reduce) {
         html { scroll-behavior: auto; }
         *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

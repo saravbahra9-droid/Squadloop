@@ -130,11 +130,33 @@ const PhoneMockup = () => {
 // while the user scrolls the first screen — the logo travels over it — then it
 // scrolls up to reveal the page. Pure CSS pin; the runway is 200vh so the panel
 // is pinned for exactly one viewport of scroll.
+const SPARK_PATH = "M12 0 C12.7 7.9 16.1 11.3 24 12 C16.1 12.7 12.7 16.1 12 24 C11.3 16.1 7.9 12.7 0 12 C7.9 11.3 11.3 7.9 12 0 Z";
+// hand-placed so the field frames the centered logo instead of covering it
+const SPARKS = [
+  { x: 16, y: 22, s: 15, d: 3.2, del: 0.0, drift: 60, o: 0.9 },
+  { x: 27, y: 66, s: 10, d: 4.1, del: 1.1, drift: 95, o: 0.7 },
+  { x: 9,  y: 45, s: 8,  d: 5.0, del: 2.0, drift: 130, o: 0.55 },
+  { x: 38, y: 30, s: 7,  d: 3.8, del: 0.6, drift: 75, o: 0.5 },
+  { x: 60, y: 18, s: 9,  d: 4.6, del: 1.7, drift: 110, o: 0.6 },
+  { x: 73, y: 34, s: 13, d: 3.5, del: 0.3, drift: 65, o: 0.85 },
+  { x: 86, y: 24, s: 8,  d: 5.4, del: 2.4, drift: 140, o: 0.5 },
+  { x: 82, y: 58, s: 11, d: 4.0, del: 0.9, drift: 85, o: 0.75 },
+  { x: 66, y: 72, s: 7,  d: 4.8, del: 1.4, drift: 120, o: 0.5 },
+  { x: 47, y: 80, s: 9,  d: 3.9, del: 2.1, drift: 100, o: 0.65 },
+  { x: 91, y: 44, s: 6,  d: 5.2, del: 0.5, drift: 150, o: 0.45 },
+  { x: 21, y: 84, s: 6,  d: 4.4, del: 1.8, drift: 90, o: 0.5 },
+];
+
 const BlueIntro = ({ prog }) => (
   <div style={{ height: "200vh", position: "relative" }} aria-hidden="true">
-    <div style={{ position: "sticky", top: 0, height: "100vh", overflow: "hidden", background: "radial-gradient(ellipse at 72% 16%, rgba(200,168,75,0.10), transparent 58%), linear-gradient(160deg,#08121F 0%,#0F2040 68%,#122040 100%)" }}>
-      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "min(80vw, 900px)", height: "min(50vw, 520px)", borderRadius: "50%", background: `radial-gradient(ellipse, ${C.gold}14, transparent 62%)`, filter: "blur(6px)", opacity: Math.max(0, 1 - prog * 1.6), pointerEvents: "none" }} />
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: 34, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, opacity: Math.max(0, 1 - prog * 5), transition: "opacity 0.15s linear", pointerEvents: "none" }}>
+    <div className="sl-curtain" style={{ position: "sticky", top: 0, overflow: "hidden", background: "radial-gradient(ellipse at 72% 16%, rgba(200,168,75,0.10), transparent 58%), linear-gradient(160deg,#08121F 0%,#0F2040 68%,#122040 100%)" }}>
+      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "min(84vw, 960px)", height: "min(54vw, 560px)", borderRadius: "50%", background: `radial-gradient(ellipse, ${C.gold}1a, transparent 60%)`, filter: "blur(8px)", opacity: Math.max(0, 1 - prog * 1.6), pointerEvents: "none" }} />
+      {SPARKS.map((sp, i) => (
+        <svg key={i} viewBox="0 0 24 24" width={sp.s} height={sp.s} style={{ position: "absolute", left: `${sp.x}%`, top: `${sp.y}%`, color: i % 3 === 0 ? C.goldL : C.gold, opacity: Math.max(0, (1 - prog * 1.8)) * sp.o, transform: `translateY(${-prog * sp.drift}px)`, filter: "drop-shadow(0 0 6px rgba(237,217,138,0.55))", pointerEvents: "none" }}>
+          <path d={SPARK_PATH} fill="currentColor" style={{ transformOrigin: "center", animation: `slTwinkle ${sp.d}s ease-in-out ${sp.del}s infinite` }} />
+        </svg>
+      ))}
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 34, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, opacity: Math.max(0, 1 - prog * 5), pointerEvents: "none" }}>
         <span style={{ fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: "rgba(255,255,255,0.4)" }}>Scroll</span>
         <span style={{ color: C.gold, fontSize: 18, lineHeight: 1, animation: "slBounce 1.6s ease-in-out infinite" }}>⌄</span>
       </div>
@@ -145,22 +167,22 @@ const BlueIntro = ({ prog }) => (
 // Scroll-scrubbed logo: at prog 0 it sits large and centered on the blue panel;
 // as prog → 1 it shrinks and travels into the top-left nav corner. Driven
 // entirely by scroll position (prog), never auto-played.
+const LOGO_AR = 3180 / 696; // natural aspect ratio of the logo artwork
 const ScrollLogo = ({ prog = 1 }) => {
   const innerRef = useRef(null);
-  const logoRef = useRef(null);
-  const [big, setBig] = useState({ dx: 0, dy: 0, s: 1 });
+  // Lay the image out at FULL hero size and scale DOWN to dock — the browser
+  // rasterizes at the large layout size, so the logo stays sharp at every step.
+  const [geo, setGeo] = useState({ w: 600, dx: 0, dy: 0, dock: 0.26 });
 
   const recompute = () => {
-    const inner = innerRef.current, logo = logoRef.current;
-    if (!inner || !logo) return;
+    const inner = innerRef.current;
+    if (!inner) return;
     const vw = window.innerWidth, vh = window.innerHeight;
     const contLeft = inner.getBoundingClientRect().left;
-    const natW = logo.offsetWidth || 120;
     const mobile = vw < 768;
-    const targetW = Math.min(vw * (mobile ? 0.82 : 0.6), mobile ? 460 : 720);
-    const s = Math.max(1, targetW / natW);
-    // start centered on the blue screen (both axes); end docked in the nav
-    setBig({ dx: (vw - natW * s) / 2 - contLeft, dy: vh * 0.5 - 32, s });
+    const w = Math.min(vw * (mobile ? 0.82 : 0.6), mobile ? 460 : 720);
+    const h = w / LOGO_AR;
+    setGeo({ w, dx: (vw - w) / 2 - contLeft, dy: vh * 0.5 - 32, dock: 34 / h });
   };
 
   useEffect(() => {
@@ -172,13 +194,13 @@ const ScrollLogo = ({ prog = 1 }) => {
 
   // ease the scrub so the dock feels weighted rather than linear
   const e = prog < 0.5 ? 2 * prog * prog : 1 - Math.pow(-2 * prog + 2, 2) / 2;
-  const cx = big.dx * (1 - e), cy = big.dy * (1 - e), cScale = big.s + (1 - big.s) * e;
+  const cx = geo.dx * (1 - e), cy = geo.dy * (1 - e), cScale = 1 + (geo.dock - 1) * e;
   const glow = Math.max(0, 1 - e * 1.4); // gold aura, strongest while centered
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1001, padding: "0 clamp(16px,4vw,60px)", pointerEvents: "none" }}>
       <div ref={innerRef} style={{ maxWidth: 1200, margin: "0 auto", height: 64, display: "flex", alignItems: "center" }}>
-        <div ref={logoRef} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ cursor: "pointer", pointerEvents: "auto", transformOrigin: "left center", transform: `translate(${cx}px, ${cy}px) scale(${cScale})`, willChange: "transform", filter: `drop-shadow(0 0 ${Math.round(26 * glow)}px rgba(200,168,75,${(0.4 * glow).toFixed(2)}))${e < 0.95 ? " drop-shadow(0 14px 40px rgba(0,0,0,0.4))" : ""}` }}>
-          <img src="/logo-mark.png" alt="SquadLoop" onLoad={recompute} style={{ height: 34, width: "auto", display: "block" }} />
+        <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ cursor: "pointer", pointerEvents: "auto", transformOrigin: "left center", transform: `translate3d(${cx}px, ${cy}px, 0) scale(${cScale})`, willChange: "transform", filter: `drop-shadow(0 0 ${Math.round(30 * glow)}px rgba(200,168,75,${(0.45 * glow).toFixed(2)}))${e < 0.95 ? " drop-shadow(0 14px 40px rgba(0,0,0,0.4))" : ""}` }}>
+          <img src="/logo-mark.png" alt="SquadLoop" style={{ width: geo.w, height: "auto", display: "block" }} />
         </div>
       </div>
     </div>
@@ -694,13 +716,21 @@ export default function SquadLoopLanding() {
   }, []);
 
   // Scroll progress over the first viewport drives the whole intro (0 → docked).
+  // A lerped rAF loop chases the scroll position, so the logo glides with
+  // momentum instead of stepping on each discrete scroll event.
   useEffect(() => {
     if (reduced) { setProg(1); return; }
-    const onScroll = () => setProg(Math.min(1, Math.max(0, window.scrollY / window.innerHeight)));
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => { window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); };
+    let raf, cur = Math.min(1, Math.max(0, window.scrollY / window.innerHeight));
+    setProg(cur);
+    const tick = () => {
+      const target = Math.min(1, Math.max(0, window.scrollY / window.innerHeight));
+      cur += (target - cur) * 0.14;
+      if (Math.abs(target - cur) < 0.0008) cur = target;
+      setProg(p => (p === cur ? p : cur));
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, [reduced]);
 
   const intro = !reduced;               // whether the blue curtain exists
