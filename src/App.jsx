@@ -11,8 +11,8 @@ const C = {
 };
 const serif = "'Cormorant Garamond', Georgia, serif";
 const sans  = "'Plus Jakarta Sans', system-ui, sans-serif";
-const GOOGLE_FORM_EMBED = "https://docs.google.com/forms/d/e/1FAIpQLSdysXIi5gVecLnlDpJ0UlpCsmo0e5brLuAIOCkPW5KLlTLtoQ/viewform?embedded=true&hl=en";
 const FORMSPREE_URL = "https://formspree.io/f/mqeveyjn";
+const FEEDBACK_URL = "https://formspree.io/f/mzezknkz";
 
 const FontLoader = () => {
   useEffect(() => {
@@ -434,37 +434,67 @@ const TrustSection = () => (
   </section>
 );
 
+const QUIZ_QS = [
+  { key: "children", label: "Children in activities", opts: ["1", "2", "3+"] },
+  { key: "perWeek", label: "Activities per week, all children", opts: ["1–2", "3–5", "6+"] },
+  { key: "bookVia", label: "How you book today", opts: ["WhatsApp", "Bank transfer", "Academy app", "School portal", "Cash"], multi: true },
+  { key: "wouldUse", label: "One app for every activity — would you use it?", opts: ["Yes", "Maybe", "No"] },
+];
+
 const QuizSection = () => {
   const mobile = useIsMobile();
-  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({ children: "", perWeek: "", bookVia: [], wouldUse: "", area: "", frustration: "", email: "" });
+  const [status, setStatus] = useState("idle");
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const pick = (q, o) => q.multi ? set(q.key, form[q.key].includes(o) ? form[q.key].filter(x => x !== o) : [...form[q.key], o]) : set(q.key, o);
+  const on = (q, o) => q.multi ? form[q.key].includes(o) : form[q.key] === o;
+  const submit = async () => {
+    const e = form.email.trim();
+    if (!form.children || !form.perWeek || !form.wouldUse || (e && !EMAIL_RE.test(e))) { setStatus("invalid"); return; }
+    setStatus("sending");
+    try {
+      const res = await fetch(FEEDBACK_URL, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify({ ...form, bookVia: form.bookVia.join(", "), email: e || "(not given)", form: "Parent feedback", _subject: `Parent feedback — ${form.area || "area not given"}` }) });
+      setStatus(res.ok ? "done" : "error");
+    } catch { setStatus("error"); }
+  };
+  const lbl = { fontFamily: sans, fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 7 };
+  const field = { width: "100%", padding: "11px 14px", borderRadius: 9, border: "1.5px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.06)", fontFamily: sans, fontSize: 14, color: "#fff", boxSizing: "border-box", outline: "none" };
+  const focus = e => e.target.style.borderColor = C.gold;
+  const blur = e => e.target.style.borderColor = "rgba(255,255,255,0.1)";
   return (
     <section id="quiz" style={{ background: C.obs, padding: "clamp(70px,10vw,120px) clamp(16px,5vw,80px)" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+      <div style={{ maxWidth: 760, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <Eyebrow light>Share Your Feedback</Eyebrow>
           <SectionTitle light>Help us build the right product.</SectionTitle>
           <SubText light style={{ marginBottom: 16 }}>We're building SquadLoop for families like yours. Share your thoughts and help shape what we create — it takes under 60 seconds.</SubText>
           <GoldLine />
         </div>
-        {submitted ? (
+        {status === "done" ? (
           <div style={{ textAlign: "center", padding: "60px 20px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20 }}>
-            <div style={{ fontSize: 52, marginBottom: 16 }}>🙏</div>
-            <div style={{ fontFamily: serif, fontSize: 28, fontWeight: 600, color: C.chalk, marginBottom: 10 }}>Thank you for your feedback!</div>
-            <div style={{ fontFamily: sans, fontSize: 14, color: "rgba(255,255,255,0.45)", lineHeight: 1.7, maxWidth: 400, margin: "0 auto" }}>Your input helps us build something truly useful for Dubai families. We'll be in touch before launch.</div>
+            <div style={{ fontFamily: serif, fontSize: 28, fontWeight: 600, color: C.chalk, marginBottom: 10 }}>Thank you.</div>
+            <div style={{ fontFamily: sans, fontSize: 14, color: "rgba(255,255,255,0.45)", lineHeight: 1.7, maxWidth: 400, margin: "0 auto" }}>Your answers shape what we build for Dubai families.{form.email.trim() ? " We'll write to you before launch." : ""}</div>
           </div>
         ) : (
-          <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, overflow: "hidden" }}>
-            <div style={{ background: `linear-gradient(90deg,${C.gold}22,${C.gold}08)`, padding: "16px 24px", display: "flex", alignItems: "center", gap: 12, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-              <span style={{ fontSize: 24 }}>✨</span>
-              <div>
-                <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 800, color: C.gold }}>Parent Feedback Form</div>
-                <div style={{ fontFamily: sans, fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Takes about 60 seconds · Shown once</div>
+          <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "clamp(22px,3vw,34px)" }}>
+            {QUIZ_QS.map(q => (
+              <div key={q.key} style={{ marginBottom: 20 }}>
+                <div style={lbl}>{q.label}{q.multi ? " · select all" : ""}</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{q.opts.map(o => (<button key={o} onClick={() => pick(q, o)} style={{ fontFamily: sans, fontWeight: 700, fontSize: 12, padding: "8px 15px", borderRadius: 8, border: `1.5px solid ${on(q, o) ? C.gold : "rgba(255,255,255,0.15)"}`, background: on(q, o) ? "rgba(200,168,75,0.15)" : "transparent", color: on(q, o) ? C.gold : "rgba(255,255,255,0.5)", cursor: "pointer", transition: "all 0.18s" }}>{o}</button>))}</div>
               </div>
+            ))}
+            <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: 14, marginBottom: 14 }}>
+              <div><div style={lbl}>Area</div><input value={form.area} onChange={e => set("area", e.target.value)} placeholder="e.g. Al Barsha" style={field} onFocus={focus} onBlur={blur} /></div>
+              <div><div style={lbl}>Email · optional</div><input value={form.email} onChange={e => set("email", e.target.value)} placeholder="For early access" type="email" style={field} onFocus={focus} onBlur={blur} /></div>
             </div>
-            <iframe src={GOOGLE_FORM_EMBED} style={{ width: "100%", height: mobile ? 680 : 720, border: "none", display: "block" }} title="SquadLoop Parent Feedback" loading="lazy" />
-            <div style={{ padding: "16px 24px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "center", background: "rgba(0,0,0,0.2)" }}>
-              <button onClick={() => setSubmitted(true)} style={{ fontFamily: sans, fontWeight: 700, fontSize: 13, padding: "11px 28px", borderRadius: 10, background: C.gold, color: C.ink, border: "none", cursor: "pointer", boxShadow: `0 4px 16px ${C.gold}44` }}>I've submitted my feedback ✓</button>
+            <div style={{ marginBottom: 18 }}>
+              <div style={lbl}>The hardest part of managing activities today</div>
+              <textarea value={form.frustration} onChange={e => set("frustration", e.target.value)} placeholder="Chasing payments, clashing schedules, finding a coach…" rows={3} style={{ ...field, resize: "vertical" }} onFocus={focus} onBlur={blur} />
             </div>
+            {status === "invalid" && <div style={{ fontFamily: sans, fontSize: 12, color: "#ff6b6b", marginBottom: 10 }}>Please answer the first, second and fourth questions, and check your email address.</div>}
+            {status === "error" && <div style={{ fontFamily: sans, fontSize: 12, color: "#ff6b6b", marginBottom: 10 }}>Something went wrong. Please email hello@squadloop.ae directly.</div>}
+            <GoldBtn onClick={submit} block>{status === "sending" ? "Sending…" : "Send Feedback →"}</GoldBtn>
+            <div style={{ fontFamily: sans, fontSize: 11, color: "rgba(255,255,255,0.25)", textAlign: "center", marginTop: 10 }}>Under 60 seconds · UAE PDPL compliant</div>
           </div>
         )}
       </div>
@@ -537,7 +567,7 @@ const FinalCTA = ({ onWaitlist }) => (
     <div style={{ maxWidth: 560, margin: "0 auto", position: "relative" }}>
       <GoldLine />
       <h2 style={{ fontFamily: serif, fontSize: "clamp(32px,5vw,54px)", fontWeight: 600, color: C.chalk, lineHeight: 1.05, letterSpacing: -0.5, margin: "18px 0" }}>The waitlist is<br /><span style={{ color: C.gold, fontStyle: "italic" }}>open now.</span></h2>
-      <p style={{ fontFamily: sans, fontSize: 15, color: "rgba(255,255,255,0.45)", lineHeight: 1.8, marginBottom: 32 }}>Founding members receive priority placement and reduced platform fees. Launching late 2026.</p>
+      <p style={{ fontFamily: sans, fontSize: 15, color: "rgba(255,255,255,0.45)", lineHeight: 1.8, marginBottom: 32 }}>Founding members receive priority access. Launching late 2026.</p>
       <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
         <GoldBtn onClick={onWaitlist}>Join the Waitlist →</GoldBtn>
         <GhostBtn onClick={() => document.getElementById("contact-form")?.scrollIntoView({ behavior: "smooth" })}>Get in Touch</GhostBtn>
@@ -656,13 +686,13 @@ const getBotReply = (msg) => {
   if (q.match(/safe|khda|pdpl|compliance|legal|regulated|data|privacy/))
     return "SquadLoop is built with compliance at its core. ✅ We're UAE PDPL compliant, KHDA-verified providers only, DTEC licensed in Dubai Silicon Oasis, and Stripe-secured for all payments. Child safeguarding is built into every layer of the platform.";
   if (q.match(/launch|when|available|open|start|ready/))
-    return "We're launching in Dubai in late 2026! 🚀 Join the waitlist now to get priority access and founding member benefits — including reduced platform fees. Tap the gold 'Join Waitlist' button at the top of the page.";
+    return "We're launching in Dubai in late 2026! 🚀 Join the waitlist now for priority access. Tap the gold 'Join Waitlist' button at the top of the page.";
   if (q.match(/contact|email|reach|talk|call|speak/))
     return "You can reach us at hello@squadloop.ae and we'll get back to you within 24 hours. 📧 Or scroll down to our Contact section and fill in the form directly on this page!";
   if (q.match(/stripe|pay|payment|payout|money|transfer/))
     return "All payments are handled securely by Stripe. 💳 Parents pay per session through the app. Providers receive 93% of every booking automatically. Schools receive 90% of every facility rental. We never hold funds.";
   if (q.match(/waitlist|sign up|register|join|early access/))
-    return "Tap the gold 'Join Waitlist' button at the top of the page! 🌟 Founding members get priority placement and reduced platform fees when we launch in late 2026.";
+    return "Tap the gold 'Join Waitlist' button at the top of the page! 🌟 Waitlist members get priority access when we launch in late 2026.";
   if (q.match(/hi|hello|hey|morning|evening|good/))
     return "Hello! 👋 Great to meet you. I'm here to help with any questions about SquadLoop — pricing, how it works for parents, schools, or ECA providers. What would you like to know?";
   if (q.match(/how|work|what is|about|explain|tell me/))
