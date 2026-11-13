@@ -2,54 +2,41 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#08121F" />
     <link rel="canonical" href="https://squadloop.ae" />
 
-    <title>SquadLoop UAE — Book Every After-School Activity in Dubai</title>
-    <meta name="description" content="SquadLoop connects Dubai's parents, schools, and activity providers — discover, book, and manage every extracurricular activity from one premium app. Sports, music, STEM, arts and more. Launching late 2026." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="preload" as="image" href="/logo-mark.png" />
 
-    <!-- Open Graph -->
+    <title>SquadLoop — Where the day continues · After-school activities in Dubai</title>
+    <meta name="description" content="SquadLoop connects Dubai's parents, academies and schools. Discover, book and manage every after-school activity — sport, music, STEM and the arts — in one quietly brilliant app. Founding waitlist now open." />
+
     <meta property="og:site_name" content="SquadLoop UAE" />
-    <meta property="og:title" content="SquadLoop UAE — Every Activity. One Platform." />
-    <meta property="og:description" content="Discover, book, and manage every after-school activity from one premium app — sports, music, STEM, arts and more. Launching Dubai, late 2026." />
+    <meta property="og:title" content="SquadLoop — Where the day continues" />
+    <meta property="og:description" content="Every after-school activity in Dubai — discovered, booked and managed in one app. For parents, academies and schools." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://squadloop.ae" />
     <meta property="og:image" content="https://squadloop.ae/logo.png" />
     <meta property="og:locale" content="en_AE" />
 
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="SquadLoop UAE — Every Activity. One Platform." />
-    <meta name="twitter:description" content="Discover, book, and manage every after-school activity in Dubai from one premium app. Launching late 2026." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="SquadLoop — Where the day continues" />
+    <meta name="twitter:description" content="Every after-school activity in Dubai — discovered, booked and managed in one app." />
     <meta name="twitter:image" content="https://squadloop.ae/logo.png" />
 
-    <style>
-      *, *::before, *::after { box-sizing: border-box; }
-      html { scroll-behavior: smooth; scroll-padding-top: 80px; -webkit-text-size-adjust: 100%; overflow-x: hidden; }
-      body { margin: 0; padding: 0; background: #08121F; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
-      :focus-visible { outline: 2px solid #C8A84B; outline-offset: 2px; border-radius: 4px; }
-      ::selection { background: rgba(200,168,75,0.3); }
-      @keyframes slBounce { 0%, 100% { transform: translateY(0); opacity: 0.6; } 50% { transform: translateY(7px); opacity: 1; } }
-      @keyframes slTwinkle {
-        0%, 100% { opacity: 0.12; transform: scale(0.55) rotate(0deg); }
-        50%      { opacity: 0.95; transform: scale(1.15) rotate(18deg); }
-      }
-      .sl-curtain { height: 100vh; }
-      @supports (height: 100dvh) { .sl-curtain { height: 100dvh; } }
-      @media (prefers-reduced-motion: reduce) {
-        html { scroll-behavior: auto; }
-        *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-      }
-    </style>
+    <script type="application/ld+json">
+      {"@context":"https://schema.org","@type":"Organization","name":"SquadLoop UAE","url":"https://squadloop.ae","logo":"https://squadloop.ae/logo.png","email":"hello@squadloop.ae","address":{"@type":"PostalAddress","addressLocality":"Dubai","addressCountry":"AE"}}
+    </script>
+    <style>html,body{background:#08121F;margin:0}</style>
   </head>
-  <body>
+  <body class="is-loading">
     <div id="root"></div>
+    <noscript><p style="color:#F4EFE4;font-family:Georgia,serif;padding:40px">SquadLoop — after-school activities in Dubai. Contact hello@squadloop.ae</p></noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

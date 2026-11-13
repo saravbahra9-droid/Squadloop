@@ -1,0 +1,80 @@
+import { useEffect, useState } from "react";
+import { getLenis } from "../lib/scroll.js";
+
+const LINKS = [
+  ["Families", "audiences"],
+  ["How it works", "how"],
+  ["Pricing", "pricing"],
+  ["Standards", "trust"],
+];
+
+export default function Nav({ visible }) {
+  const [hidden, setHidden] = useState(false);
+  const [solid, setSolid] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      setSolid(y > 40);
+      if (Math.abs(y - last) > 6) {
+        setHidden(y > last && y > 140);
+        last = y;
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const lenis = getLenis();
+    if (open) lenis?.stop();
+    else lenis?.start();
+    document.documentElement.classList.toggle("menu-open", open);
+  }, [open]);
+
+  const cls = ["nav", solid && "is-solid", hidden && !open && "is-hidden", !visible && "is-pre", open && "is-open"]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <header className={cls}>
+      <div className="nav-inner">
+        <a href="#top" className="nav-logo" aria-label="SquadLoop home" onClick={() => setOpen(false)}>
+          <img src="/logo-mark.png" alt="SquadLoop" width="155" height="34" />
+        </a>
+        <nav className="nav-links" aria-label="Primary">
+          {LINKS.map(([label, id]) => (
+            <a key={id} href={`#${id}`} className="nav-link">
+              {label}
+            </a>
+          ))}
+        </nav>
+        <div className="nav-right">
+          <a href="#waitlist" className="btn btn-gold btn-sm" data-magnetic onClick={() => setOpen(false)}>
+            Join the waitlist
+          </a>
+          <button
+            className="nav-burger"
+            aria-label={open ? "Close menu" : "Open menu"}
+            aria-expanded={open}
+            onClick={() => setOpen((o) => !o)}
+          >
+            <span />
+            <span />
+          </button>
+        </div>
+      </div>
+      <div className="nav-sheet" aria-hidden={!open}>
+        {LINKS.map(([label, id], i) => (
+          <a key={id} href={`#${id}`} className="sheet-link" style={{ transitionDelay: open ? `${0.08 + i * 0.06}s` : "0s" }} onClick={() => setOpen(false)}>
+            <span className="sheet-n">0{i + 1}</span>
+            {label}
+          </a>
+        ))}
+        <a href="mailto:hello@squadloop.ae" className="sheet-mail">hello@squadloop.ae</a>
+      </div>
+    </header>
+  );
+}

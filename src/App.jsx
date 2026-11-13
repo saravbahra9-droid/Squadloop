@@ -1,289 +1,148 @@
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Lenis from "lenis";
+import RingCanvas from "./components/RingCanvas.jsx";
+import Preloader, { Star } from "./components/Preloader.jsx";
+import Nav from "./components/Nav.jsx";
+import Cursor from "./components/Cursor.jsx";
+import Phone from "./components/Phone.jsx";
+import { WaitlistForm, FeedbackForm } from "./components/Forms.jsx";
+import { setAnchors, sample, ringTarget } from "./lib/ringState.js";
+import { setLenis, getLenis, scrollToId } from "./lib/scroll.js";
 
-const C = {
-  obs:"#08121F", mid:"#0F2040", navy:"#0A1628",
-  ivory:"#F9F6EF", chalk:"#FFFFFF",
-  gold:"#C8A84B", goldL:"#EDD98A", goldSoft:"#F5EBD0",
-  ink:"#0D1B2A", slate:"#5A6B82", fog:"#E8EDF4", mist:"#F2F4F8",
-  green:"#0A9E64", greenSoft:"#E0F5EC",
-  blue:"#1658C8", blueSoft:"#E4EEFB",
-  muted:"#9aaabb",
-};
-const serif = "'Cormorant Garamond', Georgia, serif";
-const sans  = "'Plus Jakarta Sans', system-ui, sans-serif";
-const FORMSPREE_URL = "https://formspree.io/f/mqeveyjn";
-const FEEDBACK_URL = "https://formspree.io/f/mzezknkz";
+gsap.registerPlugin(ScrollTrigger);
+ScrollTrigger.config({ ignoreMobileResize: true });
 
-const FontLoader = () => {
-  useEffect(() => {
-    const l = document.createElement("link");
-    l.rel = "stylesheet";
-    l.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap";
-    document.head.appendChild(l);
-  }, []);
-  return null;
-};
+const isReduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const isMobile = () => window.matchMedia("(max-width: 767px)").matches;
 
-const useIsMobile = () => {
-  const [mobile, setMobile] = useState(window.innerWidth < 768);
-  useEffect(() => {
-    const h = () => setMobile(window.innerWidth < 768);
-    window.addEventListener("resize", h);
-    return () => window.removeEventListener("resize", h);
-  }, []);
-  return mobile;
-};
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const usePrefersReducedMotion = () => {
-  const [reduced, setReduced] = useState(() => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const h = () => setReduced(mq.matches);
-    mq.addEventListener("change", h);
-    return () => mq.removeEventListener("change", h);
-  }, []);
-  return reduced;
-};
-
-const GoldLine = () => (
-  <div style={{ width: 60, height: 2, background: `linear-gradient(90deg,${C.gold},${C.goldL})`, borderRadius: 2, margin: "0 auto" }} />
-);
-const Eyebrow = ({ children, light = false }) => (
-  <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 2.5, textTransform: "uppercase", color: light ? "rgba(255,255,255,0.4)" : C.slate, marginBottom: 12, textAlign: "center" }}>{children}</div>
-);
-const SectionTitle = ({ children, light = false, style = {} }) => (
-  <h2 style={{ fontFamily: serif, fontSize: "clamp(28px,4.5vw,50px)", fontWeight: 600, color: light ? C.chalk : C.ink, lineHeight: 1.1, letterSpacing: -0.5, textAlign: "center", margin: "0 0 16px", ...style }}>{children}</h2>
-);
-const SubText = ({ children, light = false, style = {} }) => (
-  <p style={{ fontFamily: sans, fontSize: "clamp(14px,1.5vw,16px)", lineHeight: 1.8, color: light ? "rgba(255,255,255,0.5)" : C.slate, textAlign: "center", margin: "0 auto", maxWidth: 520, ...style }}>{children}</p>
-);
-const GoldBtn = ({ children, onClick, small = false, block = false, style = {} }) => (
-  <button onClick={onClick} style={{ fontFamily: sans, fontWeight: 700, fontSize: small ? 13 : 15, padding: small ? "10px 22px" : "14px 32px", borderRadius: 10, cursor: "pointer", border: "none", background: C.gold, color: C.ink, letterSpacing: 0.3, boxShadow: `0 6px 24px ${C.gold}44`, width: block ? "100%" : "auto", transition: "transform 0.2s", ...style }}
-    onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"}
-    onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}>{children}</button>
-);
-const GhostBtn = ({ children, onClick }) => (
-  <button onClick={onClick} style={{ fontFamily: sans, fontWeight: 700, fontSize: 15, padding: "14px 32px", borderRadius: 10, cursor: "pointer", border: "1.5px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.8)", letterSpacing: 0.3, transition: "all 0.2s" }}
-    onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.13)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)"; }}
-    onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}>{children}</button>
-);
-
-const PhoneMockup = () => {
-  const [phase, setPhase] = useState(0);
-  const [fade, setFade] = useState(true);
-  const reduced = usePrefersReducedMotion();
-  const phases = [
-    { role: "Parent", header: { bg: `linear-gradient(160deg,${C.navy},#1C3060)`, title: "Good morning, Saif 👋", sub: "Dubai Sports City · 3 activities upcoming" }, cards: [{ name: "Al Nasr FC", sport: "⚽ Football", price: "AED 120", slots: "3 slots", rating: "★ 4.9", bc: C.gold }, { name: "Aqua Sharks", sport: "🏊 Swimming", price: "AED 95", slots: "7 slots", rating: "★ 4.7", bc: C.blue }, { name: "Emirates Tennis", sport: "🎾 Tennis", price: "AED 180", slots: "2 slots", rating: "★ 4.8", bc: "#C8302A" }], nav: [["🏠", "Home"], ["🔍", "Explore"], ["🗓", "Bookings"], ["👤", "Profile"]] },
-    { role: "School", header: { bg: `linear-gradient(160deg,#0D1F3C,#1A3A5C)`, title: "GEMS Wellington", sub: "Enterprise Portal · Dubai Sports City" }, stats: [{ l: "Students", v: "1,204" }, { l: "Partners", v: "8" }, { l: "Facilities", v: "3/5" }], grid: [{ time: "07:00", slots: [{ n: "Al Nasr", c: C.blue }, null, { n: "Aqua Club", c: C.green }] }, { time: "09:00", slots: [null, { n: "Emirates", c: C.gold }, null] }, { time: "15:00", slots: [{ n: "Al Nasr", c: C.blue }, { n: "Emirates", c: C.gold }, null] }], nav: [["📊", "Dashboard"], ["🗓", "Schedule"], ["🤝", "Partners"], ["📋", "Reports"]] },
-    { role: "Provider", header: { bg: `linear-gradient(160deg,${C.navy},#1C3060)`, title: "Al Nasr FC Academy", sub: "Coach Portal · Coach Khalid" }, metrics: [{ icon: "💰", l: "Revenue", v: "AED 840" }, { icon: "🪑", l: "Slots", v: "6" }, { icon: "✅", l: "Check-Ins", v: "9" }], sessions: [{ title: "U10 Football", time: "4:00 PM", pct: 88, live: true }, { title: "Teen Training", time: "5:30 PM", pct: 75, live: false }, { title: "Advanced Drills", time: "7:00 PM", pct: 60, live: false }], nav: [["🏠", "Home"], ["🗓", "Sessions"], ["👥", "Roster"], ["📈", "Analytics"]] },
+/* ------------------------------------------------------------------ */
+/* Ring choreography: where the gold loop sits at each point of scroll */
+/* x / y are fractions of the half-viewport (−1…1), y up is positive.   */
+/* ------------------------------------------------------------------ */
+const anchorSpec = (m) => {
+  const loop = m
+    ? { x: 0, y: 0.12, scale: 0.36, split: 1, opacity: 1, glow: 0.25 }
+    : { x: 0, y: 0.14, scale: 0.62, split: 1, opacity: 1, glow: 0.25 };
+  const how = m
+    ? { x: 0.75, y: 0.86, scale: 0.18, split: 0, opacity: 0.12, glow: 0 }
+    : { x: -0.86, y: 0.7, scale: 0.26, split: 0, opacity: 0.22, glow: 0 };
+  return [
+    { sel: "#top", at: "start", v: m ? { x: 0, y: 0.4, scale: 0.56, split: 0, opacity: 1, glow: 0.35 } : { x: 0.5, y: 0.02, scale: 0.9, split: 0, opacity: 1, glow: 0.35 } },
+    { sel: "#story", at: "center", v: m ? { x: 0.4, y: 0.62, scale: 0.36, split: 0, opacity: 0.45, glow: 0.1 } : { x: -0.74, y: -0.02, scale: 0.56, split: 0, opacity: 0.95, glow: 0.15 } },
+    { sel: "#loop", at: "start", v: loop },
+    { sel: "#loop", at: "end", v: loop },
+    { sel: "#audiences", at: "center", v: { x: 0, y: 0.8, scale: m ? 0.22 : 0.3, split: 1, opacity: 0.1, glow: 0 } },
+    { sel: "#how", at: "start", v: how },
+    { sel: "#how", at: "end", v: how },
+    { sel: "#pricing", at: "center", v: { x: m ? 0.6 : 0.88, y: -0.6, scale: 0.3, split: 0, opacity: 0.12, glow: 0 } },
+    { sel: "#trust", at: "center", v: { x: m ? -0.6 : -0.88, y: 0.55, scale: 0.28, split: 0, opacity: 0.12, glow: 0 } },
+    { sel: "#feedback", at: "center", v: { x: m ? 0.6 : 0.86, y: -0.5, scale: 0.26, split: 0, opacity: 0.1, glow: 0 } },
+    { sel: "#waitlist", at: "start", v: m ? { x: 0, y: 0.52, scale: 0.4, split: 0, opacity: 1, glow: 1 } : { x: 0, y: 0.44, scale: 0.55, split: 0, opacity: 1, glow: 1 } },
+    { sel: "#waitlist", at: "end", v: { x: 0, y: 0.95, scale: m ? 0.26 : 0.32, split: 0, opacity: 0.2, glow: 0.4 } },
   ];
-  useEffect(() => { if (reduced) return; const t = setInterval(() => { setFade(false); setTimeout(() => { setPhase(p => (p + 1) % 3); setFade(true); }, 350); }, 4000); return () => clearInterval(t); }, [reduced]);
-  const p = phases[phase];
-  return (
-    <div style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center", paddingBottom: 40 }}>
-      <div style={{ position: "absolute", width: 300, height: 300, borderRadius: "50%", background: `radial-gradient(circle,${C.gold}18,transparent 70%)`, top: "50%", left: "50%", transform: "translate(-50%,-50%)", pointerEvents: "none" }} />
-      <div style={{ width: 240, height: 480, borderRadius: 36, background: C.ink, boxShadow: `0 40px 80px rgba(0,0,0,0.6),0 0 0 8px #141E2E,0 0 0 10px #1A2A40`, overflow: "hidden", opacity: fade ? 1 : 0, transition: "opacity 0.35s" }}>
-        <div style={{ background: C.navy, padding: "8px 16px 0", display: "flex", justifyContent: "space-between", fontSize: 10, color: "rgba(255,255,255,0.5)", fontFamily: sans }}><span style={{ fontWeight: 700, color: "#fff" }}>9:41</span><span>●●●</span></div>
-        <div style={{ background: p.header.bg, padding: "10px 14px 12px", color: "#fff" }}>
-          <div style={{ fontSize: 8, color: C.gold, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", fontFamily: sans, marginBottom: 2 }}>{p.role} View</div>
-          <div style={{ fontSize: 12, fontWeight: 800, fontFamily: sans, lineHeight: 1.2 }}>{p.header.title}</div>
-          <div style={{ fontSize: 9, opacity: 0.5, marginTop: 2, fontFamily: sans }}>{p.header.sub}</div>
-          {!p.stats && <div style={{ marginTop: 8, background: "rgba(255,255,255,0.1)", borderRadius: 7, padding: "6px 9px", fontSize: 9, color: "rgba(255,255,255,0.35)", fontFamily: sans }}>🔍 Search activities…</div>}
-          <div style={{ height: 10, background: "#F4F6FB", borderRadius: "10px 10px 0 0", margin: "10px -14px -2px" }} />
-        </div>
-        <div style={{ background: "#F4F6FB", padding: "6px 10px", overflowY: "hidden", maxHeight: 290 }}>
-          {p.cards && p.cards.map((c, i) => (
-            <div key={i} style={{ background: "#fff", borderRadius: 9, padding: "8px 9px", marginBottom: 7, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", border: "1px solid #E8EDF4" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div><div style={{ fontSize: 10, fontWeight: 800, color: C.ink, fontFamily: sans }}>{c.name}</div><div style={{ fontSize: 8, color: C.slate, fontFamily: sans }}>{c.sport}</div></div>
-                <span style={{ background: `${c.bc}18`, color: c.bc, fontSize: 7, fontWeight: 800, padding: "2px 6px", borderRadius: 10, fontFamily: sans }}>{c.rating}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, paddingTop: 6, borderTop: "1px solid #F0F2F8" }}>
-                <span style={{ fontSize: 8, color: C.green, fontWeight: 700, fontFamily: sans }}>🪑 {c.slots}</span>
-                <span style={{ fontSize: 9, fontWeight: 900, color: C.ink, fontFamily: sans }}>{c.price}</span>
-              </div>
-            </div>
-          ))}
-          {p.stats && <>
-            <div style={{ display: "flex", gap: 4, marginBottom: 7 }}>{p.stats.map(s => (<div key={s.l} style={{ flex: 1, background: "#fff", borderRadius: 7, padding: "6px 4px", textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}><div style={{ fontSize: 10, fontWeight: 900, color: C.ink, fontFamily: sans }}>{s.v}</div><div style={{ fontSize: 6, color: C.slate, fontFamily: sans, marginTop: 1 }}>{s.l}</div></div>))}</div>
-            <div style={{ background: "#fff", borderRadius: 9, padding: "7px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-              <div style={{ fontSize: 8, fontWeight: 700, color: C.ink, fontFamily: sans, marginBottom: 4 }}>Facility Schedule</div>
-              <div style={{ display: "grid", gridTemplateColumns: "28px 1fr 1fr 1fr", gap: 3, marginBottom: 3 }}><div />{["Field A", "Ct 1", "Pool"].map(f => (<div key={f} style={{ background: C.navy, borderRadius: 3, padding: "2px 1px", fontSize: 6, fontWeight: 700, color: "#fff", textAlign: "center", fontFamily: sans }}>{f}</div>))}</div>
-              {p.grid.map((row, i) => (<div key={i} style={{ display: "grid", gridTemplateColumns: "28px 1fr 1fr 1fr", gap: 3, marginBottom: 3 }}><div style={{ fontSize: 6, color: C.slate, fontFamily: sans, display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 2 }}>{row.time}</div>{row.slots.map((s, j) => (<div key={j} style={{ height: 18, borderRadius: 3, background: s ? `${s.c}18` : "#F8F9FC", border: s ? `1.5px solid ${s.c}` : "1px solid #E8EDF4", display: "flex", alignItems: "center", justifyContent: "center" }}>{s && <span style={{ fontSize: 5, fontWeight: 800, color: s.c, fontFamily: sans }}>{s.n}</span>}</div>))}</div>))}
-            </div>
-          </>}
-          {p.metrics && <>
-            <div style={{ display: "flex", gap: 4, marginBottom: 7 }}>{p.metrics.map((m, i) => (<div key={i} style={{ flex: 1, background: i === 0 ? C.navy : "#fff", borderRadius: 7, padding: "7px 5px", textAlign: "center", borderTop: i === 0 ? `2px solid ${C.gold}` : "none" }}><div style={{ fontSize: 8, marginBottom: 2 }}>{m.icon}</div><div style={{ fontSize: 10, fontWeight: 900, color: i === 0 ? "#fff" : C.ink, fontFamily: sans }}>{m.v}</div><div style={{ fontSize: 6, color: i === 0 ? C.gold : C.slate, fontFamily: sans, marginTop: 1 }}>{m.l}</div></div>))}</div>
-            {p.sessions.map((s, i) => (<div key={i} style={{ background: "#fff", borderRadius: 7, padding: "7px 9px", marginBottom: 5, borderLeft: `3px solid ${s.live ? C.green : C.gold}` }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{ fontSize: 9, fontWeight: 800, color: C.ink, fontFamily: sans }}>{s.title}</div>{s.live && <span style={{ fontSize: 6, fontWeight: 800, color: C.green, background: C.greenSoft, padding: "1px 5px", borderRadius: 8, fontFamily: sans }}>● Live</span>}</div><div style={{ fontSize: 7, color: C.slate, fontFamily: sans, marginBottom: 3 }}>🕓 {s.time}</div><div style={{ height: 3, background: "#F0F2F8", borderRadius: 3, overflow: "hidden" }}><div style={{ height: "100%", width: `${s.pct}%`, background: s.live ? C.green : C.navy, borderRadius: 3 }} /></div></div>))}
-          </>}
-        </div>
-        <div style={{ background: "#fff", borderTop: "1px solid #E8EDF4", display: "flex", padding: "5px 0 9px" }}>{p.nav.map(([icon, label], i) => (<div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}><span style={{ fontSize: 13 }}>{icon}</span><span style={{ fontSize: 6, fontWeight: 600, color: i === 0 ? C.ink : C.slate, fontFamily: sans }}>{label}</span></div>))}</div>
-      </div>
-      <div style={{ position: "absolute", bottom: 8, display: "flex", gap: 6, justifyContent: "center" }}>{[0, 1, 2].map(i => (<div key={i} style={{ width: i === phase ? 18 : 6, height: 6, borderRadius: 3, background: i === phase ? C.gold : "rgba(255,255,255,0.2)", transition: "all 0.4s" }} />))}</div>
-    </div>
-  );
 };
 
-// The blue intro "curtain": a full-screen navy panel that stays pinned (sticky)
-// while the user scrolls the first screen — the logo travels over it — then it
-// scrolls up to reveal the page. Pure CSS pin; the runway is 200vh so the panel
-// is pinned for exactly one viewport of scroll.
-const SPARK_PATH = "M12 0 C12.7 7.9 16.1 11.3 24 12 C16.1 12.7 12.7 16.1 12 24 C11.3 16.1 7.9 12.7 0 12 C7.9 11.3 11.3 7.9 12 0 Z";
-// hand-placed so the field frames the centered logo instead of covering it
-const SPARKS = [
-  { x: 16, y: 22, s: 15, d: 3.2, del: 0.0, drift: 60, o: 0.9 },
-  { x: 27, y: 66, s: 10, d: 4.1, del: 1.1, drift: 95, o: 0.7 },
-  { x: 9,  y: 45, s: 8,  d: 5.0, del: 2.0, drift: 130, o: 0.55 },
-  { x: 38, y: 30, s: 7,  d: 3.8, del: 0.6, drift: 75, o: 0.5 },
-  { x: 60, y: 18, s: 9,  d: 4.6, del: 1.7, drift: 110, o: 0.6 },
-  { x: 73, y: 34, s: 13, d: 3.5, del: 0.3, drift: 65, o: 0.85 },
-  { x: 86, y: 24, s: 8,  d: 5.4, del: 2.4, drift: 140, o: 0.5 },
-  { x: 82, y: 58, s: 11, d: 4.0, del: 0.9, drift: 85, o: 0.75 },
-  { x: 66, y: 72, s: 7,  d: 4.8, del: 1.4, drift: 120, o: 0.5 },
-  { x: 47, y: 80, s: 9,  d: 3.9, del: 2.1, drift: 100, o: 0.65 },
-  { x: 91, y: 44, s: 6,  d: 5.2, del: 0.5, drift: 150, o: 0.45 },
-  { x: 21, y: 84, s: 6,  d: 4.4, del: 1.8, drift: 90, o: 0.5 },
-];
+function measureAnchors() {
+  const vh = window.innerHeight;
+  const list = anchorSpec(isMobile())
+    .map((a) => {
+      const el = document.querySelector(a.sel);
+      if (!el) return null;
+      const box = el.parentElement?.classList.contains("pin-spacer") ? el.parentElement : el;
+      const r = box.getBoundingClientRect();
+      const top = r.top + window.scrollY;
+      const pos = a.at === "start" ? top : a.at === "end" ? top + r.height - vh : top + r.height / 2 - vh / 2;
+      return { pos: Math.max(0, pos), v: a.v };
+    })
+    .filter(Boolean);
+  setAnchors(list);
+  sample(window.scrollY);
+}
 
-// Fraction of a viewport of scrolling over which the logo docks. The curtain
-// runway is sized so it starts lifting the instant the dock completes —
-// no dead stretch of empty blue in between.
-const INTRO_PIN = 0.55;
+/* ------------------------------ helpers ------------------------------ */
+const Words = ({ text, em = [] }) =>
+  text.split(" ").map((w, i) => [
+    i > 0 ? " " : null,
+    <span className="w" key={i}>
+      <span className={`wi${em.includes(i) ? " em" : ""}`}>{w}</span>
+    </span>,
+  ]);
 
-const BlueIntro = ({ prog }) => (
-  <div style={{ height: `${100 + INTRO_PIN * 100}vh`, position: "relative" }} aria-hidden="true">
-    <div className="sl-curtain" style={{ position: "sticky", top: 0, overflow: "hidden", background: "radial-gradient(ellipse at 72% 16%, rgba(200,168,75,0.10), transparent 58%), linear-gradient(160deg,#08121F 0%,#0F2040 68%,#122040 100%)" }}>
-      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "min(84vw, 960px)", height: "min(54vw, 560px)", borderRadius: "50%", background: `radial-gradient(ellipse, ${C.gold}1a, transparent 60%)`, filter: "blur(8px)", opacity: Math.max(0, 1 - prog * 1.6), pointerEvents: "none" }} />
-      {SPARKS.map((sp, i) => (
-        <svg key={i} viewBox="0 0 24 24" width={sp.s} height={sp.s} style={{ position: "absolute", left: `${sp.x}%`, top: `${sp.y}%`, color: i % 3 === 0 ? C.goldL : C.gold, opacity: Math.max(0, (1 - prog * 1.8)) * sp.o, transform: `translateY(${-prog * sp.drift}px)`, filter: "drop-shadow(0 0 6px rgba(237,217,138,0.55))", pointerEvents: "none" }}>
-          <path d={SPARK_PATH} fill="currentColor" style={{ transformOrigin: "center", animation: `slTwinkle ${sp.d}s ease-in-out ${sp.del}s infinite` }} />
-        </svg>
-      ))}
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: 34, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, opacity: Math.max(0, 1 - prog * 5), pointerEvents: "none" }}>
-        <span style={{ fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: "rgba(255,255,255,0.4)" }}>Scroll</span>
-        <span style={{ color: C.gold, fontSize: 18, lineHeight: 1, animation: "slBounce 1.6s ease-in-out infinite" }}>⌄</span>
-      </div>
-    </div>
-  </div>
+const Eyebrow = ({ children }) => (
+  <p className="eyebrow">
+    <Star className="eb-star" />
+    {children}
+  </p>
 );
 
-// Scroll-scrubbed logo: at prog 0 it sits large and centered on the blue panel;
-// as prog → 1 it shrinks and travels into the top-left nav corner. Driven
-// entirely by scroll position (prog), never auto-played.
-const LOGO_AR = 3180 / 696; // natural aspect ratio of the logo artwork
-const ScrollLogo = ({ prog = 1 }) => {
-  const innerRef = useRef(null);
-  // Lay the image out at FULL hero size and scale DOWN to dock — the browser
-  // rasterizes at the large layout size, so the logo stays sharp at every step.
-  const [geo, setGeo] = useState({ w: 600, dx: 0, dy: 0, dock: 0.26 });
-
-  const recompute = () => {
-    const inner = innerRef.current;
-    if (!inner) return;
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const contLeft = inner.getBoundingClientRect().left;
-    const mobile = vw < 768;
-    const w = Math.min(vw * (mobile ? 0.82 : 0.6), mobile ? 460 : 720);
-    const h = w / LOGO_AR;
-    setGeo({ w, dx: (vw - w) / 2 - contLeft, dy: vh * 0.5 - 32, dock: 34 / h });
-  };
-
-  useEffect(() => {
-    recompute();
-    const onResize = () => recompute();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  // ease the scrub so the dock feels weighted rather than linear
-  const e = prog < 0.5 ? 2 * prog * prog : 1 - Math.pow(-2 * prog + 2, 2) / 2;
-  const cx = geo.dx * (1 - e), cy = geo.dy * (1 - e), cScale = 1 + (geo.dock - 1) * e;
-  const glow = Math.max(0, 1 - e * 1.4); // gold aura, strongest while centered
-  return (
-    <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1001, padding: "0 clamp(16px,4vw,60px)", pointerEvents: "none" }}>
-      <div ref={innerRef} style={{ maxWidth: 1200, margin: "0 auto", height: 64, display: "flex", alignItems: "center" }}>
-        <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ cursor: "pointer", pointerEvents: "auto", transformOrigin: "left center", transform: `translate3d(${cx}px, ${cy}px, 0) scale(${cScale})`, willChange: "transform", filter: `drop-shadow(0 0 ${Math.round(30 * glow)}px rgba(200,168,75,${(0.45 * glow).toFixed(2)}))${e < 0.95 ? " drop-shadow(0 14px 40px rgba(0,0,0,0.4))" : ""}` }}>
-          <img src="/logo-mark.png" alt="SquadLoop" style={{ width: geo.w, height: "auto", display: "block" }} />
-        </div>
+/* ------------------------------ sections ----------------------------- */
+const Hero = () => (
+  <section className="hero" id="top">
+    <div className="wrap hero-inner">
+      <p className="eyebrow hero-fade">
+        <span className="live-dot" /> Dubai · Waitlist now open
+      </p>
+      <h1 className="hero-title">
+        <Words text="Where the day continues." em={[3]} />
+      </h1>
+      <p className="hero-sub hero-fade">
+        Every after-school activity in Dubai — discovered, booked and managed in one quietly brilliant app. For parents, academies and schools.
+      </p>
+      <div className="hero-cta hero-fade">
+        <a href="#waitlist" className="btn btn-gold" data-magnetic>
+          Join the waitlist
+        </a>
+        <a href="#how" className="btn btn-ghost" data-magnetic>
+          See how it works
+        </a>
       </div>
     </div>
-  );
-};
+    <div className="hero-foot hero-fade" aria-hidden="true">
+      <span>Scroll</span>
+      <i className="scroll-line" />
+    </div>
+  </section>
+);
 
-const Nav = ({ onWaitlist, hidden = false }) => {
-  const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const mobile = useIsMobile();
-  useEffect(() => { const h = () => setScrolled(window.scrollY > 60); window.addEventListener("scroll", h); return () => window.removeEventListener("scroll", h); }, []);
-  const scrollTo = id => { document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }); setMenuOpen(false); };
-  const links = [["For Parents", "parents"], ["For Schools", "schools"], ["For Providers", "academies"], ["Pricing", "pricing"], ["Contact", "contact"]];
-  return (
-    <>
-      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000, background: scrolled || menuOpen ? "rgba(8,18,31,0.97)" : "transparent", backdropFilter: "blur(16px)", borderBottom: scrolled ? "1px solid rgba(255,255,255,0.07)" : "none", transition: "all 0.3s", padding: "0 clamp(16px,4vw,60px)", opacity: hidden ? 0 : 1, pointerEvents: hidden ? "none" : "auto" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
-          <img src="/logo-mark.png" alt="" aria-hidden="true" style={{ height: 34, width: "auto", visibility: "hidden" }} />
-          {!mobile && (<div style={{ display: "flex", gap: 24, alignItems: "center" }}>{links.map(([l, id]) => (<button key={l} onClick={() => scrollTo(id)} style={{ fontFamily: sans, fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", background: "none", border: "none", cursor: "pointer", padding: 0, transition: "color 0.2s" }} onMouseEnter={e => e.target.style.color = "#fff"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.6)"}>{l}</button>))}</div>)}
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <GoldBtn onClick={onWaitlist} small>Join Waitlist</GoldBtn>
-            {mobile && (<button onClick={() => setMenuOpen(p => !p)} aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", width: 38, height: 38, borderRadius: 9, fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{menuOpen ? "✕" : "☰"}</button>)}
-          </div>
-        </div>
-        {mobile && menuOpen && (<div style={{ padding: "12px 20px 20px", display: "flex", flexDirection: "column", gap: 4 }}>{links.map(([l, id]) => (<button key={l} onClick={() => scrollTo(id)} style={{ fontFamily: sans, fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.7)", background: "none", border: "none", cursor: "pointer", padding: "10px 0", textAlign: "left", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>{l}</button>))}</div>)}
-      </nav>
-    </>
-  );
-};
+const STORY =
+  "After the final bell, a second school day begins. Swimming lanes, violin cases, football boots, chess clocks. Today it lives in WhatsApp threads, bank transfers and paper forms. SquadLoop brings every hour of it into one place.";
 
-const Hero = ({ onWaitlist }) => {
-  const mobile = useIsMobile();
-  return (
-    <section style={{ background: `linear-gradient(160deg,${C.obs} 0%,${C.mid} 60%,#122040 100%)`, minHeight: "100vh", display: "flex", alignItems: "center", padding: `100px clamp(16px,5vw,80px) 80px`, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: 0, right: 0, width: "55%", height: "100%", background: `radial-gradient(ellipse at 80% 40%,${C.gold}0a,transparent 60%)`, pointerEvents: "none" }} />
-      <div style={{ maxWidth: 1200, margin: "0 auto", width: "100%", display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "clamp(40px,6vw,100px)", alignItems: "center" }}>
-        <div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(200,168,75,0.12)", border: "1px solid rgba(200,168,75,0.25)", borderRadius: 30, padding: "6px 16px", marginBottom: 24 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.gold, display: "inline-block" }} />
-            <span style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, color: C.gold, letterSpacing: 1.8, textTransform: "uppercase" }}>Launching Dubai · Late 2026</span>
-          </div>
-          <h1 style={{ fontFamily: serif, fontSize: "clamp(36px,5.5vw,68px)", fontWeight: 600, color: C.chalk, lineHeight: 1.05, letterSpacing: -1, margin: "0 0 20px" }}>Every activity.<br />One <span style={{ color: C.gold, fontStyle: "italic" }}>elegant</span><br />platform.</h1>
-          <p style={{ fontFamily: sans, fontSize: "clamp(15px,1.8vw,17px)", color: "rgba(255,255,255,0.55)", lineHeight: 1.8, maxWidth: 460, marginBottom: 32 }}>SquadLoop connects Dubai's parents, schools, and activity providers — making it effortless to discover, book, and manage every extracurricular activity from one premium app. Sports, music, STEM, arts, and beyond.</p>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", marginBottom: 40 }}>
-            <GoldBtn onClick={onWaitlist}>Get Early Access →</GoldBtn>
-            <GhostBtn onClick={() => document.getElementById("how")?.scrollIntoView({ behavior: "smooth" })}>See How It Works</GhostBtn>
-          </div>
-          <div style={{ display: "flex", gap: "clamp(12px,2.5vw,28px)", flexWrap: "wrap" }}>
-            {["KHDA Compliant", "UAE PDPL", "Stripe Secured", "DTEC Licensed"].map(t => (<div key={t} style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ color: C.gold, fontSize: 13 }}>✓</span><span style={{ fontFamily: sans, fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.35)" }}>{t}</span></div>))}
-          </div>
-        </div>
-        {!mobile && (<div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}><PhoneMockup /></div>)}
+const Story = () => (
+  <section className="story" id="story">
+    <div className="wrap story-inner">
+      <Eyebrow>The afternoon, reimagined</Eyebrow>
+      <p className="story-text">
+        {STORY.split(" ").map((w, i) => (
+          <span className="sw" key={i}>
+            {w}{" "}
+          </span>
+        ))}
+      </p>
+    </div>
+  </section>
+);
+
+const LoopSection = () => (
+  <section className="loop" id="loop">
+    <div className="loop-stage">
+      <div className="loop-head">
+        <Eyebrow>One platform</Eyebrow>
+        <h2 className="display">
+          Three sides. <em>One loop.</em>
+        </h2>
       </div>
-    </section>
-  );
-};
-
-const PersonaStrip = ({ onWaitlist }) => (
-  <section id="parents" style={{ background: C.ivory, padding: "clamp(60px,8vw,100px) clamp(16px,5vw,80px)" }}>
-    <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-      <div style={{ textAlign: "center", marginBottom: "clamp(36px,5vw,56px)" }}>
-        <Eyebrow>Who it's for</Eyebrow>
-        <SectionTitle>Three sides. One platform.</SectionTitle>
-        <GoldLine />
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 20 }}>
+      <div className="loop-labels">
         {[
-          { icon: "👨‍👧", label: "Parents", color: C.blue, soft: C.blueSoft, headline: "Every activity your child does. In one place.", body: "Discover KHDA-approved providers near your school — from football and swimming to music, STEM, arts, and more. Book, pay, and manage everything for all your children from one app.", points: ["Browse sports, music, STEM, arts & more", "Book and pay with ease", "Manage all your children's schedules", "Instant booking confirmation"], cta: "Join as a Parent" },
-          { icon: "🏫", label: "Schools", color: C.green, soft: C.greenSoft, headline: "Turn empty facilities into monthly income.", body: "Your halls, courts, studios, and labs sit idle after school hours. We connect you with vetted ECA providers and handle every booking, payment, and compliance check automatically.", points: ["Earn 90% of every facility rental", "Real-time facility schedule dashboard", "KHDA-vetted providers only", "Zero admin overhead for your team"], cta: "Partner Your School" },
-          { icon: "🏟️", label: "Academies & Providers", color: "#8B6510", soft: C.goldSoft, headline: "Grow your programme. Get paid faster.", body: "Whether you run a football academy, music school, coding club, or arts programme — list your sessions, book school venues, and manage every class digitally.", points: ["Reach parents at top Dubai schools", "Book school venues directly in-app", "Digital attendance and roster tools", "Automated payouts via Stripe"], cta: "List Your Programme" },
-        ].map((card, i) => (
-          <div key={i} style={{ background: C.chalk, borderRadius: 18, padding: "clamp(22px,3vw,34px)", border: `1px solid ${C.fog}`, boxShadow: "0 2px 12px rgba(13,27,42,0.05)", display: "flex", flexDirection: "column" }}>
-            <div style={{ width: 50, height: 50, borderRadius: 13, background: card.soft, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 18 }}>{card.icon}</div>
-            <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 1.8, textTransform: "uppercase", color: card.color, marginBottom: 8 }}>{card.label}</div>
-            <h3 style={{ fontFamily: serif, fontSize: "clamp(18px,2.5vw,24px)", fontWeight: 600, color: C.ink, lineHeight: 1.2, marginBottom: 12 }}>{card.headline}</h3>
-            <p style={{ fontFamily: sans, fontSize: 14, color: C.slate, lineHeight: 1.7, marginBottom: 20, flex: 1 }}>{card.body}</p>
-            <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px" }}>{card.points.map((pt, j) => (<li key={j} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 9 }}><span style={{ color: card.color, flexShrink: 0, marginTop: 3, fontSize: 12 }}>✓</span><span style={{ fontFamily: sans, fontSize: 13, color: C.slate, lineHeight: 1.5 }}>{pt}</span></li>))}</ul>
-            <button onClick={onWaitlist} style={{ fontFamily: sans, fontWeight: 700, fontSize: 14, padding: "11px 0", borderRadius: 10, cursor: "pointer", background: "transparent", color: card.color, border: `1.5px solid ${card.color}`, transition: "all 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = card.soft} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>{card.cta} →</button>
+          ["I", "Parents", "Discover & book"],
+          ["II", "Academies", "Publish & grow"],
+          ["III", "Schools", "Host on campus"],
+        ].map(([n, t, s], i) => (
+          <div className="ll" key={t} style={{ left: `${20 + i * 30}%` }}>
+            <span className="ll-n">{n}</span>
+            <span className="ll-t">{t}</span>
+            <span className="ll-s">{s}</span>
           </div>
         ))}
       </div>
@@ -291,505 +150,510 @@ const PersonaStrip = ({ onWaitlist }) => (
   </section>
 );
 
-const HowItWorks = () => {
-  const [active, setActive] = useState(0);
-  const mobile = useIsMobile();
-  const steps = [
-    { n: "01", title: "Discover", body: "Browse a curated feed of KHDA-verified ECA providers — sports, music, STEM, arts and more — filtered by your child's school, age group, and location. Every provider is reviewed before going live.", icon: "🔍" },
-    { n: "02", title: "Book", body: "Select a session, confirm your child's details, and pay securely through Stripe. You'll receive an instant confirmation — no phone calls, no bank transfers.", icon: "📅" },
-    { n: "03", title: "Manage", body: "Track upcoming sessions, payment history, and attendance records for every child in one dashboard. Reschedule or cancel with ease.", icon: "📊" },
-    { n: "04", title: "Enjoy", body: "Show up. Your child's coach or instructor already has their name on the digital roster. Attendance is marked in real time and you'll be notified when they're checked in.", icon: "✅" },
-  ];
-  return (
-    <section id="how" style={{ background: C.obs, padding: "clamp(70px,10vw,120px) clamp(16px,5vw,80px)" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "clamp(40px,6vw,100px)", alignItems: "center" }}>
-        <div>
-          <Eyebrow light>How it works</Eyebrow>
-          <h2 style={{ fontFamily: serif, fontSize: "clamp(26px,4vw,44px)", fontWeight: 600, color: C.chalk, lineHeight: 1.1, margin: "0 0 14px" }}>Booking an activity is simple.</h2>
-          <p style={{ fontFamily: sans, fontSize: 15, color: "rgba(255,255,255,0.45)", lineHeight: 1.8, marginBottom: 36 }}>We built SquadLoop to remove every point of friction between a parent and their child's next session.</p>
-          <div>{steps.map((s, i) => (<div key={i} onClick={() => setActive(i)} style={{ display: "flex", gap: 18, padding: "18px 0", borderBottom: "1px solid rgba(255,255,255,0.06)", cursor: "pointer" }}><div style={{ fontFamily: serif, fontSize: 26, fontWeight: 600, color: active === i ? C.gold : "rgba(255,255,255,0.15)", transition: "color 0.3s", flexShrink: 0, lineHeight: 1, marginTop: 2 }}>{s.n}</div><div><div style={{ fontFamily: sans, fontSize: 15, fontWeight: 700, color: active === i ? C.chalk : "rgba(255,255,255,0.4)", marginBottom: 5, transition: "color 0.3s" }}>{s.title}</div><div style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,255,255,0.35)", lineHeight: 1.7, maxHeight: active === i ? 100 : 0, overflow: "hidden", transition: "max-height 0.4s ease", opacity: active === i ? 1 : 0 }}>{s.body}</div></div></div>))}</div>
-        </div>
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-          <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 22, padding: "clamp(28px,4vw,48px)", textAlign: "center", maxWidth: 340, width: "100%" }}>
-            <div style={{ fontSize: 56, marginBottom: 20 }}>{steps[active].icon}</div>
-            <div style={{ fontFamily: serif, fontSize: "clamp(22px,3vw,30px)", fontWeight: 600, color: C.chalk, marginBottom: 14 }}>{steps[active].title}</div>
-            <div style={{ fontFamily: sans, fontSize: 14, color: "rgba(255,255,255,0.45)", lineHeight: 1.8 }}>{steps[active].body}</div>
-            <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 24 }}>{steps.map((_, i) => (<div key={i} onClick={() => setActive(i)} style={{ width: i === active ? 22 : 7, height: 7, borderRadius: 4, background: i === active ? C.gold : "rgba(255,255,255,0.15)", cursor: "pointer", transition: "all 0.3s" }} />))}</div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const SchoolSection = ({ onWaitlist }) => {
-  const mobile = useIsMobile();
-  return (
-    <section id="schools" style={{ background: C.ivory, padding: "clamp(70px,10vw,120px) clamp(16px,5vw,80px)" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "clamp(36px,6vw,100px)", alignItems: "center" }}>
-        {!mobile && (
-          <div style={{ background: C.chalk, borderRadius: 18, padding: "24px 22px", border: `1px solid ${C.fog}`, boxShadow: "0 4px 24px rgba(13,27,42,0.06)" }}>
-            <div style={{ background: "#0D1F3C", borderRadius: 12, padding: "14px 16px", marginBottom: 14, color: "#fff" }}>
-              <div style={{ fontFamily: sans, fontSize: 9, color: C.gold, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Enterprise Portal</div>
-              <div style={{ display: "flex", gap: 8 }}>{[{ l: "Students", v: "1,204" }, { l: "Partners", v: "8" }, { l: "Facilities", v: "3/5" }].map(s => (<div key={s.l} style={{ flex: 1, background: "rgba(255,255,255,0.08)", borderRadius: 7, padding: "8px 5px", textAlign: "center" }}><div style={{ fontFamily: sans, fontSize: 14, fontWeight: 800, color: "#fff" }}>{s.v}</div><div style={{ fontFamily: sans, fontSize: 8, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{s.l}</div></div>))}</div>
-            </div>
-            <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, color: C.ink, marginBottom: 8 }}>Today's Facility Schedule</div>
-            <div style={{ display: "grid", gridTemplateColumns: "38px 1fr 1fr 1fr", gap: 4, marginBottom: 4 }}><div />{["Field A", "Court 1", "Pool"].map(f => (<div key={f} style={{ background: C.ink, borderRadius: 5, padding: "3px 2px", fontFamily: sans, fontSize: 8, fontWeight: 700, color: "#fff", textAlign: "center" }}>{f}</div>))}</div>
-            {[["07:00", [{ n: "Al Nasr", c: C.blue }, null, { n: "Aqua", c: C.green }]], ["09:00", [null, { n: "Emirates", c: C.gold }, null]], ["11:00", [null, null, { n: "Aqua", c: C.green }]], ["15:00", [{ n: "Al Nasr", c: C.blue }, { n: "Emirates", c: C.gold }, null]]].map(([t, slots], i) => (<div key={i} style={{ display: "grid", gridTemplateColumns: "38px 1fr 1fr 1fr", gap: 4, marginBottom: 4 }}><div style={{ fontFamily: sans, fontSize: 8, color: C.slate, display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 3 }}>{t}</div>{slots.map((s, j) => (<div key={j} style={{ height: 28, borderRadius: 5, background: s ? `${s.c}15` : "#F5F6FA", border: s ? `1.5px solid ${s.c}` : "1px solid #E8EDF4", display: "flex", alignItems: "center", justifyContent: "center" }}>{s && <span style={{ fontFamily: sans, fontSize: 7, fontWeight: 700, color: s.c }}>{s.n}</span>}</div>))}</div>))}
-          </div>
-        )}
-        <div>
-          <Eyebrow>For Schools</Eyebrow>
-          <h2 style={{ fontFamily: serif, fontSize: "clamp(26px,4vw,42px)", fontWeight: 600, color: C.ink, lineHeight: 1.1, margin: "0 0 14px" }}>Your facilities work for you — even after the bell rings.</h2>
-          <p style={{ fontFamily: sans, fontSize: 15, color: C.slate, lineHeight: 1.8, marginBottom: 28 }}>Your halls, courts, studios, labs, and pools sit idle after school hours. SquadLoop connects you with fully vetted ECA providers — sports, music, STEM, arts — and automates every booking, payment, and compliance check.</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 18, marginBottom: 32 }}>{[{ icon: "💰", title: "Earn 90% of every rental", body: "Set your rates. We handle bookings from vetted providers. 90% of every fee goes directly to your school." }, { icon: "🛡️", title: "Every provider is KHDA-verified", body: "Trade license, insurance, and police clearance — all checked before any provider steps on campus." }, { icon: "📊", title: "Full oversight, zero effort", body: "A live dashboard shows you who's on campus, which space, and until when — from any device." }].map((f, i) => (<div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}><div style={{ width: 42, height: 42, borderRadius: 11, background: C.greenSoft, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19, flexShrink: 0 }}>{f.icon}</div><div><div style={{ fontFamily: sans, fontSize: 14, fontWeight: 700, color: C.ink, marginBottom: 3 }}>{f.title}</div><div style={{ fontFamily: sans, fontSize: 13, color: C.slate, lineHeight: 1.7 }}>{f.body}</div></div></div>))}</div>
-          <GoldBtn onClick={onWaitlist}>Request a School Demo →</GoldBtn>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const AcademySection = ({ onWaitlist }) => {
-  const mobile = useIsMobile();
-  return (
-    <section id="academies" style={{ background: C.obs, padding: "clamp(70px,10vw,120px) clamp(16px,5vw,80px)" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "clamp(36px,6vw,100px)", alignItems: "center" }}>
-        <div>
-          <Eyebrow light>For ECA Providers</Eyebrow>
-          <h2 style={{ fontFamily: serif, fontSize: "clamp(26px,4vw,42px)", fontWeight: 600, color: C.chalk, lineHeight: 1.1, margin: "0 0 14px" }}>Your programme, in front of the right families.</h2>
-          <p style={{ fontFamily: sans, fontSize: 15, color: "rgba(255,255,255,0.5)", lineHeight: 1.8, marginBottom: 28 }}>Whether you run a football academy, music school, coding club, robotics programme, or arts studio — list your sessions, book school venues, and manage every class from one place.</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 18, marginBottom: 32 }}>{[{ icon: "📣", title: "Reach premium school families", body: "Your sessions appear in the feeds of parents at top Dubai schools, filtered by their child's age, area, and interests." }, { icon: "🏫", title: "Book school venues on demand", body: "Find and book available halls, courts, studios, labs, and pools directly in the app." }, { icon: "✅", title: "Digital rosters and attendance", body: "Coaches and instructors manage sessions, mark attendance, and communicate with parents from one portal." }, { icon: "💸", title: "Automated payouts via Stripe", body: "93% of every booking hits your account automatically. No chasing invoices." }].map((f, i) => (<div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}><div style={{ width: 42, height: 42, borderRadius: 11, background: "rgba(200,168,75,0.12)", border: "1px solid rgba(200,168,75,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19, flexShrink: 0 }}>{f.icon}</div><div><div style={{ fontFamily: sans, fontSize: 14, fontWeight: 700, color: C.chalk, marginBottom: 3 }}>{f.title}</div><div style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.7 }}>{f.body}</div></div></div>))}</div>
-          <GoldBtn onClick={onWaitlist}>List Your Programme →</GoldBtn>
-        </div>
-        {!mobile && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ display: "flex", gap: 10 }}>{[{ icon: "💰", label: "Today's Revenue", val: "AED 840", gold: true }, { icon: "✅", label: "Check-Ins", val: "9/14", gold: false }, { icon: "⭐", label: "Rating", val: "4.9", gold: false }].map((m, i) => (<div key={i} style={{ flex: 1, background: m.gold ? "rgba(200,168,75,0.1)" : C.mid, borderRadius: 13, padding: "14px 10px", border: m.gold ? `1px solid ${C.gold}33` : "1px solid rgba(255,255,255,0.06)", borderTop: m.gold ? `3px solid ${C.gold}` : "3px solid transparent", textAlign: "center" }}><div style={{ fontSize: 18, marginBottom: 5 }}>{m.icon}</div><div style={{ fontFamily: sans, fontSize: 16, fontWeight: 800, color: m.gold ? C.gold : C.chalk }}>{m.val}</div><div style={{ fontFamily: sans, fontSize: 9, color: "rgba(255,255,255,0.35)", marginTop: 3 }}>{m.label}</div></div>))}</div>
-            {[{ title: "U10 Football Training", time: "4:00 PM · Field A, GEMS Wellington", pct: 87, live: true }, { title: "Teen Advanced Drills", time: "5:30 PM · Field A, GEMS Wellington", pct: 75, live: false }, { title: "Junior Footwork Circuit", time: "7:00 PM · Field A, Repton Dubai", pct: 60, live: false }].map((s, i) => (<div key={i} style={{ background: C.mid, borderRadius: 13, padding: "14px 16px", border: "1px solid rgba(255,255,255,0.06)", borderLeft: `4px solid ${s.live ? C.green : C.gold}` }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 7 }}><div><div style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, color: C.chalk }}>{s.title}</div><div style={{ fontFamily: sans, fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>{s.time}</div></div>{s.live && <span style={{ fontFamily: sans, fontSize: 8, fontWeight: 700, color: C.green, background: "rgba(10,158,100,0.15)", padding: "2px 8px", borderRadius: 10 }}>● Live</span>}</div><div style={{ height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 3, overflow: "hidden" }}><div style={{ height: "100%", width: `${s.pct}%`, background: s.live ? C.green : C.gold, borderRadius: 3 }} /></div></div>))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-};
-
-const PricingSection = ({ onWaitlist }) => {
-  const [tab, setTab] = useState("academies");
-  const mobile = useIsMobile();
-  const plans = {
-    academies: [
-      { name: "Starter", price: "Free", period: "", sub: "Perfect for independent coaches getting started.", features: ["List up to 3 active sessions", "9% transaction fee", "Basic attendance tracking", "Stripe payouts within 48h", "SquadLoop listing"], cta: "Get Listed Free" },
-      { name: "Growth", price: "AED 799", period: "/month", sub: "For academies scaling across multiple schools.", highlight: true, features: ["Unlimited sessions", "7% transaction fee", "Priority search placement", "School facility booking", "Up to 5 coach accounts", "Analytics dashboard", "Verified Partner badge"], cta: "Start Free Trial" },
-      { name: "Elite", price: "AED 1,499", period: "/month", sub: "For multi-location academy groups.", features: ["Everything in Growth", "5.5% transaction fee", "Unlimited coaches", "CRM integration", "Compliance automation", "API access", "Dedicated account manager"], cta: "Contact Us" },
+const AUDIENCES = [
+  {
+    id: "parents",
+    n: "I",
+    tag: "For families",
+    title: "Every activity, one calm place.",
+    body: "Discover verified coaches and academies near your child's school. Book, pay and manage every child's week from one app — no WhatsApp threads, no bank transfers.",
+    points: ["Verified providers near your school", "Book and pay in three taps", "Every child's schedule in one view", "Free for parents — pay per session"],
+    cta: "Join as a parent",
+  },
+  {
+    id: "academies",
+    n: "II",
+    tag: "For academies",
+    title: "Fill your sessions, not your inbox.",
+    body: "Football, music, coding, robotics, art — publish your sessions, book school venues and get paid automatically.",
+    tiers: [
+      ["Starter", "Free", "9%"],
+      ["Growth", "AED 799/mo", "7%"],
+      ["Elite", "AED 1,499/mo", "5.5%"],
     ],
-    schools: [
-      { name: "Free Partner", price: "Free", period: "", sub: "Zero setup cost. Start earning immediately.", features: ["Facility listing & booking", "10% revenue share", "Facility schedule dashboard", "Provider compliance checks", "Document vault"], cta: "Partner Your School" },
-      { name: "Campus Pro", price: "AED 499", period: "/month", sub: "Full visibility and optimised facility control.", highlight: true, features: ["Everything in Free Partner", "8% revenue share", "Live multi-facility dashboard", "Branded parent activity page", "Monthly utilisation report", "Priority provider matching"], cta: "Start Free Trial" },
-      { name: "Group Enterprise", price: "Custom", period: "", sub: "For school groups wanting a network deal.", features: ["Group-wide dashboard", "Negotiated revenue share", "Dedicated account manager", "MIS data sync", "Bulk provider contracting", "Custom branding & SLA"], cta: "Book a Demo" },
-    ],
-  };
-  const list = plans[tab];
-  return (
-    <section id="pricing" style={{ background: C.mid, padding: "clamp(70px,10vw,120px) clamp(16px,5vw,80px)" }}>
-      <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 44 }}>
-          <Eyebrow light>Pricing</Eyebrow>
-          <SectionTitle light>Simple, transparent pricing.</SectionTitle>
-          <GoldLine />
-          <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.07)", borderRadius: 30, padding: 4, marginTop: 28 }}>
-            {[["academies", "🏟️  Academies"], ["schools", "🏫  Schools"]].map(([k, l]) => (<button key={k} onClick={() => setTab(k)} style={{ fontFamily: sans, fontWeight: 700, fontSize: 13, padding: "9px 20px", borderRadius: 26, border: "none", cursor: "pointer", background: tab === k ? C.gold : "transparent", color: tab === k ? C.ink : "rgba(255,255,255,0.45)", transition: "all 0.2s" }}>{l}</button>))}
-          </div>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(3,1fr)", gap: 16, alignItems: "start" }}>
-          {list.map(plan => (
-            <div key={plan.name} style={{ background: plan.highlight ? "rgba(200,168,75,0.07)" : C.obs, borderRadius: 18, padding: "28px 22px", border: plan.highlight ? `1.5px solid ${C.gold}55` : "1px solid rgba(255,255,255,0.07)", display: "flex", flexDirection: "column", boxShadow: plan.highlight ? `0 8px 40px ${C.gold}18` : "none" }}>
-              <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: plan.highlight ? C.gold : C.chalk, marginBottom: 5 }}>{plan.name}</div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 7 }}>
-                <span style={{ fontFamily: sans, fontSize: plan.price === "Custom" ? 26 : 30, fontWeight: 800, color: C.chalk }}>{plan.price}</span>
-                {plan.period && <span style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{plan.period}</span>}
-              </div>
-              <p style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.6, marginBottom: 20 }}>{plan.sub}</p>
-              <div style={{ flex: 1, marginBottom: 24 }}>{plan.features.map((f, j) => (<div key={j} style={{ display: "flex", gap: 9, marginBottom: 9, alignItems: "flex-start" }}><span style={{ color: plan.highlight ? C.gold : C.green, flexShrink: 0, fontSize: 11, marginTop: 2 }}>✓</span><span style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>{f}</span></div>))}</div>
-              <button onClick={onWaitlist} style={{ fontFamily: sans, fontWeight: 700, fontSize: 13, padding: "12px 0", borderRadius: 10, cursor: "pointer", background: plan.highlight ? C.gold : "transparent", color: plan.highlight ? C.ink : "rgba(255,255,255,0.6)", border: plan.highlight ? "none" : "1px solid rgba(255,255,255,0.15)", transition: "all 0.2s", width: "100%" }} onMouseEnter={e => { if (!plan.highlight) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)"; e.currentTarget.style.color = "#fff"; } }} onMouseLeave={e => { if (!plan.highlight) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; e.currentTarget.style.color = "rgba(255,255,255,0.6)"; } }}>{plan.cta}</button>
-            </div>
-          ))}
-        </div>
-        <p style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.25)", textAlign: "center", marginTop: 24 }}>No credit card required for free tiers. All paid plans include a 14-day free trial.</p>
-      </div>
-    </section>
-  );
-};
-
-const TrustSection = () => (
-  <section style={{ background: C.ivory, padding: "clamp(60px,8vw,100px) clamp(16px,5vw,80px)" }}>
-    <div style={{ maxWidth: 1000, margin: "0 auto", textAlign: "center" }}>
-      <Eyebrow>Built for the UAE</Eyebrow>
-      <SectionTitle>Safety and compliance, by design.</SectionTitle>
-      <SubText style={{ marginBottom: 14 }}>Operating with children in UAE schools means zero compromise on safeguarding, data protection, and regulatory standards.</SubText>
-      <div style={{ marginBottom: 44 }}><GoldLine /></div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 14, textAlign: "left" }}>
-        {[{ icon: "🛡️", title: "UAE PDPL Compliant", body: "All child data protected under Federal Decree-Law No. 45/2021. Consent logged at onboarding. Data hosted on UAE servers." }, { icon: "✅", title: "KHDA Provider Checks", body: "Every provider uploads their trade license, insurance, and police clearance before going live on the platform." }, { icon: "⏰", title: "Auto Document Alerts", body: "Provider document expiry is monitored continuously. Expired certifications automatically suspend bookings." }, { icon: "💳", title: "Stripe Secured Payments", body: "We never hold your money. Stripe routes funds to each party instantly. Payment details never stored on our servers." }, { icon: "🏛️", title: "DTEC Licensed", body: "SquadLoop operates under a Dubai Silicon Oasis tech startup license — 100% foreign-owned, fully regulated." }, { icon: "👶", title: "Child Safeguarding", body: "Providers cannot access student directories. Rosters are visible only for sessions a child is enrolled in." }].map(c => (<div key={c.title} style={{ background: C.chalk, borderRadius: 13, padding: "20px 18px", border: `1px solid ${C.fog}`, boxShadow: "0 1px 8px rgba(13,27,42,0.04)" }}><div style={{ fontSize: 24, marginBottom: 9 }}>{c.icon}</div><div style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, color: C.ink, marginBottom: 7 }}>{c.title}</div><div style={{ fontFamily: sans, fontSize: 12, color: C.slate, lineHeight: 1.7 }}>{c.body}</div></div>))}
-      </div>
-    </div>
-  </section>
-);
-
-const QUIZ_QS = [
-  { key: "children", label: "Children in activities", opts: ["1", "2", "3+"] },
-  { key: "perWeek", label: "Activities per week, all children", opts: ["1–2", "3–5", "6+"] },
-  { key: "bookVia", label: "How you book today", opts: ["WhatsApp", "Bank transfer", "Academy app", "School portal", "Cash"], multi: true },
-  { key: "wouldUse", label: "One app for every activity — would you use it?", opts: ["Yes", "Maybe", "No"] },
+    cta: "List your programme",
+  },
+  {
+    id: "schools",
+    n: "III",
+    tag: "For schools",
+    title: "Your campus, working after the bell.",
+    body: "Halls, courts, pools and studios sit empty after school. Host vetted providers on campus and earn from every booking — with full oversight.",
+    points: ["Keep 90% of every facility rental", "Campus Pro: AED 499 per campus / month, 92% to you", "Live dashboard of who is on campus", "KHDA-vetted providers only"],
+    cta: "Request a school demo",
+  },
 ];
 
-const QuizSection = () => {
-  const mobile = useIsMobile();
-  const [form, setForm] = useState({ children: "", perWeek: "", bookVia: [], wouldUse: "", area: "", frustration: "", email: "" });
-  const [status, setStatus] = useState("idle");
-  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
-  const pick = (q, o) => q.multi ? set(q.key, form[q.key].includes(o) ? form[q.key].filter(x => x !== o) : [...form[q.key], o]) : set(q.key, o);
-  const on = (q, o) => q.multi ? form[q.key].includes(o) : form[q.key] === o;
-  const submit = async () => {
-    const e = form.email.trim();
-    if (!form.children || !form.perWeek || !form.wouldUse || (e && !EMAIL_RE.test(e))) { setStatus("invalid"); return; }
-    setStatus("sending");
-    try {
-      const res = await fetch(FEEDBACK_URL, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify({ ...form, bookVia: form.bookVia.join(", "), email: e || "(not given)", form: "Parent feedback", _subject: `Parent feedback — ${form.area || "area not given"}` }) });
-      setStatus(res.ok ? "done" : "error");
-    } catch { setStatus("error"); }
-  };
-  const lbl = { fontFamily: sans, fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 7 };
-  const field = { width: "100%", padding: "11px 14px", borderRadius: 9, border: "1.5px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.06)", fontFamily: sans, fontSize: 14, color: "#fff", boxSizing: "border-box", outline: "none" };
-  const focus = e => e.target.style.borderColor = C.gold;
-  const blur = e => e.target.style.borderColor = "rgba(255,255,255,0.1)";
-  return (
-    <section id="quiz" style={{ background: C.obs, padding: "clamp(70px,10vw,120px) clamp(16px,5vw,80px)" }}>
-      <div style={{ maxWidth: 760, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <Eyebrow light>Share Your Feedback</Eyebrow>
-          <SectionTitle light>Help us build the right product.</SectionTitle>
-          <SubText light style={{ marginBottom: 16 }}>We're building SquadLoop for families like yours. Share your thoughts and help shape what we create — it takes under 60 seconds.</SubText>
-          <GoldLine />
-        </div>
-        {status === "done" ? (
-          <div style={{ textAlign: "center", padding: "60px 20px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20 }}>
-            <div style={{ fontFamily: serif, fontSize: 28, fontWeight: 600, color: C.chalk, marginBottom: 10 }}>Thank you.</div>
-            <div style={{ fontFamily: sans, fontSize: 14, color: "rgba(255,255,255,0.45)", lineHeight: 1.7, maxWidth: 400, margin: "0 auto" }}>Your answers shape what we build for Dubai families.{form.email.trim() ? " We'll write to you before launch." : ""}</div>
-          </div>
-        ) : (
-          <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "clamp(22px,3vw,34px)" }}>
-            {QUIZ_QS.map(q => (
-              <div key={q.key} style={{ marginBottom: 20 }}>
-                <div style={lbl}>{q.label}{q.multi ? " · select all" : ""}</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{q.opts.map(o => (<button key={o} onClick={() => pick(q, o)} style={{ fontFamily: sans, fontWeight: 700, fontSize: 12, padding: "8px 15px", borderRadius: 8, border: `1.5px solid ${on(q, o) ? C.gold : "rgba(255,255,255,0.15)"}`, background: on(q, o) ? "rgba(200,168,75,0.15)" : "transparent", color: on(q, o) ? C.gold : "rgba(255,255,255,0.5)", cursor: "pointer", transition: "all 0.18s" }}>{o}</button>))}</div>
-              </div>
-            ))}
-            <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: 14, marginBottom: 14 }}>
-              <div><div style={lbl}>Area</div><input value={form.area} onChange={e => set("area", e.target.value)} placeholder="e.g. Al Barsha" style={field} onFocus={focus} onBlur={blur} /></div>
-              <div><div style={lbl}>Email · optional</div><input value={form.email} onChange={e => set("email", e.target.value)} placeholder="For early access" type="email" style={field} onFocus={focus} onBlur={blur} /></div>
-            </div>
-            <div style={{ marginBottom: 18 }}>
-              <div style={lbl}>The hardest part of managing activities today</div>
-              <textarea value={form.frustration} onChange={e => set("frustration", e.target.value)} placeholder="Chasing payments, clashing schedules, finding a coach…" rows={3} style={{ ...field, resize: "vertical" }} onFocus={focus} onBlur={blur} />
-            </div>
-            {status === "invalid" && <div style={{ fontFamily: sans, fontSize: 12, color: "#ff6b6b", marginBottom: 10 }}>Please answer the first, second and fourth questions, and check your email address.</div>}
-            {status === "error" && <div style={{ fontFamily: sans, fontSize: 12, color: "#ff6b6b", marginBottom: 10 }}>Something went wrong. Please email hello@squadloop.ae directly.</div>}
-            <GoldBtn onClick={submit} block>{status === "sending" ? "Sending…" : "Send Feedback →"}</GoldBtn>
-            <div style={{ fontFamily: sans, fontSize: 11, color: "rgba(255,255,255,0.25)", textAlign: "center", marginTop: 10 }}>Under 60 seconds · UAE PDPL compliant</div>
-          </div>
-        )}
+const Audiences = () => (
+  <section className="audiences" id="audiences">
+    <div className="wrap">
+      <div className="sec-head" data-reveal>
+        <Eyebrow>Who it's for</Eyebrow>
+        <h2 className="display">
+          Built for everyone <em>around the child.</em>
+        </h2>
       </div>
-    </section>
-  );
-};
-
-const ContactSection = () => {
-  const [form, setForm] = useState({ name: "", email: "", role: "", message: "" });
-  const [status, setStatus] = useState("idle");
-  const mobile = useIsMobile();
-  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
-  const submit = async () => {
-    if (!form.name.trim() || !form.message.trim() || !EMAIL_RE.test(form.email.trim())) { setStatus("invalid"); return; }
-    setStatus("sending");
-    try {
-      const res = await fetch(FORMSPREE_URL, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(form) });
-      setStatus(res.ok ? "done" : "error");
-    } catch { setStatus("error"); }
-  };
-  return (
-    <section id="contact" style={{ background: C.mid, padding: "clamp(70px,10vw,120px) clamp(16px,5vw,80px)" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 44 }}>
-          <Eyebrow light>Get in Touch</Eyebrow>
-          <SectionTitle light>We'd love to hear from you.</SectionTitle>
-          <SubText light style={{ marginBottom: 16 }}>Whether you're a school, a provider, or a parent — reach out and we'll get back to you within 24 hours.</SubText>
-          <GoldLine />
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "clamp(32px,5vw,72px)", alignItems: "start" }}>
-          <div>
-            {[{ icon: "📧", label: "Email Us", value: "hello@squadloop.ae" }, { icon: "📍", label: "Based In", value: "Dubai, United Arab Emirates" }, { icon: "🚀", label: "Launching", value: "Late 2026" }].map((item, i) => (<div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 24 }}><div style={{ width: 46, height: 46, borderRadius: 12, background: "rgba(200,168,75,0.12)", border: `1px solid ${C.gold}33`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 21, flexShrink: 0 }}>{item.icon}</div><div><div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 3 }}>{item.label}</div><div style={{ fontFamily: sans, fontSize: 15, fontWeight: 600, color: C.chalk }}>{item.value}</div></div></div>))}
-            <div style={{ padding: "18px", background: "rgba(200,168,75,0.08)", borderRadius: 13, border: `1px solid ${C.gold}25` }}>
-              <div style={{ fontFamily: sans, fontSize: 12, color: C.gold, fontWeight: 700, marginBottom: 5 }}>For Schools & Providers</div>
-              <div style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.7 }}>Interested in a partnership or demo? Fill in the form and we'll tailor our response to you.</div>
+      <div className="aud-grid">
+        {AUDIENCES.map((a) => (
+          <article className="aud" id={a.id} key={a.id} data-reveal data-cursor>
+            <div className="aud-top">
+              <span className="aud-n">{a.n}</span>
+              <span className="aud-tag">{a.tag}</span>
             </div>
-          </div>
-          {status === "done" ? (
-            <div id="contact-form" style={{ textAlign: "center", padding: "48px 20px", background: "rgba(255,255,255,0.03)", borderRadius: 18, border: "1px solid rgba(255,255,255,0.08)" }}>
-              <div style={{ fontSize: 48, marginBottom: 14 }}>✅</div>
-              <div style={{ fontFamily: serif, fontSize: 26, fontWeight: 600, color: C.chalk, marginBottom: 8 }}>Message received.</div>
-              <div style={{ fontFamily: sans, fontSize: 14, color: "rgba(255,255,255,0.45)", lineHeight: 1.7 }}>We'll get back to you at {form.email} within 24 hours.</div>
-            </div>
-          ) : (
-            <div id="contact-form" style={{ background: "rgba(255,255,255,0.03)", borderRadius: 18, padding: "clamp(22px,3vw,32px)", border: "1px solid rgba(255,255,255,0.08)" }}>
-              {[{ label: "Full Name", key: "name", placeholder: "Your full name", type: "text" }, { label: "Email Address", key: "email", placeholder: "you@example.com", type: "email" }].map(f => (<div key={f.key} style={{ marginBottom: 14 }}><div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>{f.label}</div><input value={form[f.key]} onChange={e => set(f.key, e.target.value)} placeholder={f.placeholder} type={f.type} style={{ width: "100%", padding: "11px 14px", borderRadius: 9, border: "1.5px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.06)", fontFamily: sans, fontSize: 14, color: "#fff", boxSizing: "border-box", outline: "none" }} onFocus={e => e.target.style.borderColor = C.gold} onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} /></div>))}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>I am a…</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{["Parent", "School", "ECA Provider"].map(r => (<button key={r} onClick={() => set("role", r)} style={{ fontFamily: sans, fontWeight: 700, fontSize: 12, padding: "7px 14px", borderRadius: 8, border: `1.5px solid ${form.role === r ? C.gold : "rgba(255,255,255,0.15)"}`, background: form.role === r ? "rgba(200,168,75,0.15)" : "transparent", color: form.role === r ? C.gold : "rgba(255,255,255,0.45)", cursor: "pointer", transition: "all 0.18s" }}>{r}</button>))}</div>
+            <h3 className="aud-title">{a.title}</h3>
+            <p className="aud-body">{a.body}</p>
+            <div className="aud-more">
+              <div className="aud-more-inner">
+              {a.points && (
+                <ul className="aud-list">
+                  {a.points.map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+              )}
+              {a.tiers && (
+                <div className="tiers">
+                  {a.tiers.map(([t, p, f]) => (
+                    <div className="tier" key={t}>
+                      <span>{t}</span>
+                      <b>{p}</b>
+                      <em>+ {f}</em>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <a href="#waitlist" className="aud-cta">
+                {a.cta} <span>→</span>
+              </a>
               </div>
-              <div style={{ marginBottom: 18 }}>
-                <div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>Message</div>
-                <textarea value={form.message} onChange={e => set("message", e.target.value)} placeholder="Tell us how we can help…" rows={4} style={{ width: "100%", padding: "11px 14px", borderRadius: 9, border: "1.5px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.06)", fontFamily: sans, fontSize: 14, color: "#fff", boxSizing: "border-box", outline: "none", resize: "vertical" }} onFocus={e => e.target.style.borderColor = C.gold} onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} />
-              </div>
-              {status === "invalid" && <div style={{ fontFamily: sans, fontSize: 12, color: "#ff6b6b", marginBottom: 10 }}>Please enter your name, a valid email address, and a message.</div>}
-              {status === "error" && <div style={{ fontFamily: sans, fontSize: 12, color: "#ff6b6b", marginBottom: 10 }}>Something went wrong. Please email hello@squadloop.ae directly.</div>}
-              <GoldBtn onClick={submit} block>{status === "sending" ? "Sending…" : "Send Message →"}</GoldBtn>
-              <div style={{ fontFamily: sans, fontSize: 11, color: "rgba(255,255,255,0.25)", textAlign: "center", marginTop: 10 }}>We respond within 24 hours · UAE PDPL compliant</div>
             </div>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const FinalCTA = ({ onWaitlist }) => (
-  <section style={{ background: `linear-gradient(160deg,${C.obs},${C.mid})`, padding: "clamp(70px,10vw,120px) clamp(16px,5vw,80px)", textAlign: "center", position: "relative", overflow: "hidden" }}>
-    <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 500, height: 500, borderRadius: "50%", background: `radial-gradient(circle,${C.gold}07,transparent 65%)`, pointerEvents: "none" }} />
-    <div style={{ maxWidth: 560, margin: "0 auto", position: "relative" }}>
-      <GoldLine />
-      <h2 style={{ fontFamily: serif, fontSize: "clamp(32px,5vw,54px)", fontWeight: 600, color: C.chalk, lineHeight: 1.05, letterSpacing: -0.5, margin: "18px 0" }}>The waitlist is<br /><span style={{ color: C.gold, fontStyle: "italic" }}>open now.</span></h2>
-      <p style={{ fontFamily: sans, fontSize: 15, color: "rgba(255,255,255,0.45)", lineHeight: 1.8, marginBottom: 32 }}>Founding members receive priority access. Launching late 2026.</p>
-      <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-        <GoldBtn onClick={onWaitlist}>Join the Waitlist →</GoldBtn>
-        <GhostBtn onClick={() => document.getElementById("contact-form")?.scrollIntoView({ behavior: "smooth" })}>Get in Touch</GhostBtn>
+          </article>
+        ))}
       </div>
     </div>
   </section>
 );
 
-const Footer = ({ onWaitlist }) => {
-  const scrollTo = id => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-  return (
-    <footer style={{ background: C.obs, padding: "48px clamp(16px,5vw,80px) 28px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 32, marginBottom: 40 }}>
-          <div style={{ maxWidth: 240 }}>
-            <img src="/logo-mark.png" alt="SquadLoop" style={{ height: 30, width: "auto", display: "block", marginBottom: 12, cursor: "pointer" }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
-            <p style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,255,255,0.35)", lineHeight: 1.7, marginBottom: 14 }}>Dubai's premium extracurricular activity marketplace — connecting parents, schools, and providers across sports, music, STEM, arts, and more.</p>
-            <div style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.3)" }}>hello@squadloop.ae</div>
-            <div style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.3)", marginTop: 3 }}>Dubai, United Arab Emirates</div>
-          </div>
-          <div style={{ display: "flex", gap: "clamp(24px,5vw,64px)", flexWrap: "wrap" }}>
-            <div>
-              <div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: C.gold, marginBottom: 14 }}>Platform</div>
-              {[["For Parents", "parents"], ["For Schools", "schools"], ["For Providers", "academies"], ["Pricing", "pricing"], ["Feedback", "quiz"]].map(([l, id]) => (<div key={l} onClick={() => scrollTo(id)} style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,255,255,0.35)", marginBottom: 10, cursor: "pointer" }} onMouseEnter={e => e.target.style.color = "rgba(255,255,255,0.7)"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.35)"}>{l}</div>))}
-            </div>
-            <div>
-              <div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: C.gold, marginBottom: 14 }}>Company</div>
-              {[["Contact Us", "contact"], ["Join Waitlist", "waitlist"], ["Dubai, UAE", ""]].map(([l, action]) => (<div key={l} onClick={() => action === "waitlist" ? onWaitlist() : action ? scrollTo(action) : null} style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,255,255,0.35)", marginBottom: 10, cursor: "pointer" }} onMouseEnter={e => e.target.style.color = "rgba(255,255,255,0.7)"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.35)"}>{l}</div>))}
-            </div>
-            <div>
-              <div style={{ fontFamily: sans, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: C.gold, marginBottom: 14 }}>Legal</div>
-              {["Privacy Policy", "Terms of Use", "UAE PDPL", "KHDA Compliance"].map(l => (<div key={l} style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,255,255,0.35)", marginBottom: 10, cursor: "pointer" }} onMouseEnter={e => e.target.style.color = "rgba(255,255,255,0.7)"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.35)"}>{l}</div>))}
-            </div>
-          </div>
-        </div>
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-          <div style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.2)" }}>© 2026 SquadLoop UAE. All rights reserved.</div>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>{["DTEC Licensed", "KHDA Compliant", "UAE PDPL", "Stripe Secured"].map(t => (<span key={t} style={{ fontFamily: sans, fontSize: 11, color: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", gap: 4 }}><span style={{ color: C.gold }}>✓</span>{t}</span>))}</div>
+const STEPS = [
+  ["01", "Discover", "Every coach, club and academy near your child's school — curated, verified and filtered by age, area and interest."],
+  ["02", "Book", "Choose a session, pick a child, pay. Three taps. Instant confirmation, and the coach's roster updates itself."],
+  ["03", "Enjoy", "Reminders before every session, attendance marked in real time, and every child's week in one calm view."],
+];
+
+const How = ({ step }) => (
+  <section className="how" id="how">
+    <div className="how-stage wrap">
+      <div className="how-copy">
+        <Eyebrow>How it works</Eyebrow>
+        <h2 className="display how-h">
+          Booking, <em>beautifully simple.</em>
+        </h2>
+        <ol className="steps">
+          <span className="steps-line" aria-hidden="true">
+            <span className="steps-fill" />
+          </span>
+          {STEPS.map(([n, t, b], i) => (
+            <li key={n} className={`step${i === step ? " is-active" : ""}${i < step ? " is-done" : ""}`}>
+              <span className="step-n">{n}</span>
+              <div className="step-b">
+                <h3>{t}</h3>
+                <p>{b}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+      <div className="how-phone">
+        <Phone step={step} />
+      </div>
+    </div>
+  </section>
+);
+
+const ACTIVITIES = ["Swimming", "Violin", "Football", "Chess", "Ballet", "Robotics", "Tennis", "Art", "Coding", "Piano", "Gymnastics", "Drama"];
+
+const Marquee = () => (
+  <section className="marquee" aria-label="Activities on SquadLoop">
+    {[0, 1].map((row) => (
+      <div className={`mq-row${row ? " rev" : ""}`} key={row} aria-hidden={row === 1}>
+        <div className="mq-track">
+          {[...ACTIVITIES, ...ACTIVITIES].map((a, i) => (
+            <span className="mq-item" key={i}>
+              {(row ? [...ACTIVITIES].reverse() : ACTIVITIES)[i % ACTIVITIES.length]}
+              <Star className="mq-star" />
+            </span>
+          ))}
         </div>
       </div>
-    </footer>
+    ))}
+  </section>
+);
+
+const PLANS = {
+  academies: [
+    { name: "Starter", price: "Free", period: "", sub: "For independent coaches getting started.", features: ["List up to 3 active sessions", "9% transaction fee", "Basic attendance tracking", "Stripe payouts within 48h", "SquadLoop listing"], cta: "Get listed free" },
+    { name: "Growth", price: "AED 799", period: "/ month", sub: "For academies scaling across schools.", highlight: true, features: ["Unlimited sessions", "7% transaction fee", "Priority search placement", "School facility booking", "Up to 5 coach accounts", "Analytics dashboard", "Verified Partner badge"], cta: "Start free trial" },
+    { name: "Elite", price: "AED 1,499", period: "/ month", sub: "For multi-location academy groups.", features: ["Everything in Growth", "5.5% transaction fee", "Unlimited coaches", "CRM integration", "Compliance automation", "API access", "Dedicated account manager"], cta: "Contact us" },
+  ],
+  schools: [
+    { name: "Free Partner", price: "Free", period: "", sub: "Zero setup cost. Start earning immediately.", features: ["Facility listing & booking", "10% revenue share", "Facility schedule dashboard", "Provider compliance checks", "Document vault"], cta: "Partner your school" },
+    { name: "Campus Pro", price: "AED 499", period: "/ campus / month", sub: "Full visibility and facility control.", highlight: true, features: ["Everything in Free Partner", "8% revenue share", "Live multi-facility dashboard", "Branded parent activity page", "Monthly utilisation report", "Priority provider matching"], cta: "Start free trial" },
+    { name: "Group Enterprise", price: "Custom", period: "", sub: "For school groups wanting a network deal.", features: ["Group-wide dashboard", "Negotiated revenue share", "Dedicated account manager", "MIS data sync", "Bulk provider contracting", "Custom branding & SLA"], cta: "Book a demo" },
+  ],
+};
+
+const Pricing = () => {
+  const [tab, setTab] = useState("academies");
+  return (
+    <section className="pricing" id="pricing">
+      <div className="wrap">
+        <div className="sec-head" data-reveal>
+          <Eyebrow>Pricing</Eyebrow>
+          <h2 className="display">
+            Simple. <em>Transparent.</em>
+          </h2>
+          <p className="lede">Free for parents. Academies and schools choose the plan that fits.</p>
+          <div className="tabs" role="tablist">
+            {[["academies", "Academies"], ["schools", "Schools"]].map(([k, l]) => (
+              <button key={k} role="tab" aria-selected={tab === k} className={`tab${tab === k ? " on" : ""}`} onClick={() => setTab(k)}>
+                {l}
+              </button>
+            ))}
+            <span className={`tab-pill ${tab}`} aria-hidden="true" />
+          </div>
+        </div>
+        <div className="plans" key={tab}>
+          {PLANS[tab].map((p, i) => (
+            <article className={`plan${p.highlight ? " hl" : ""}`} key={p.name} style={{ animationDelay: `${i * 0.08}s` }}>
+              {p.highlight && <span className="plan-badge">Most chosen</span>}
+              <h3 className="plan-name">{p.name}</h3>
+              <div className="plan-price">
+                <b>{p.price}</b>
+                {p.period && <span>{p.period}</span>}
+              </div>
+              <p className="plan-sub">{p.sub}</p>
+              <ul className="plan-list">
+                {p.features.map((f) => (
+                  <li key={f}>{f}</li>
+                ))}
+              </ul>
+              <a href="#waitlist" className={`btn ${p.highlight ? "btn-gold" : "btn-ghost"} btn-block`} data-magnetic>
+                {p.cta}
+              </a>
+            </article>
+          ))}
+        </div>
+        <p className="fine">No card required for free tiers. All paid plans include a 14-day free trial.</p>
+      </div>
+    </section>
   );
 };
 
-const WaitlistModal = ({ onClose }) => {
-  const [form, setForm] = useState({ name: "", email: "", role: "" });
-  const [status, setStatus] = useState("idle");
-  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
-  useEffect(() => {
-    const h = e => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [onClose]);
-  const submit = async () => {
-    if (!form.role || !form.name.trim() || !EMAIL_RE.test(form.email.trim())) { setStatus("invalid"); return; }
-    setStatus("sending");
-    try {
-      const res = await fetch(FORMSPREE_URL, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify({ ...form, _subject: `New Waitlist Signup: ${form.role} — ${form.name}` }) });
-      setStatus(res.ok ? "done" : "error");
-    } catch { setStatus("error"); }
-  };
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(8,18,31,0.9)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, backdropFilter: "blur(14px)" }} onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Join the SquadLoop waitlist" style={{ background: C.chalk, borderRadius: 22, width: "100%", maxWidth: 480, boxShadow: "0 40px 100px rgba(0,0,0,0.5)", overflow: "hidden" }} onClick={e => e.stopPropagation()}>
-        <div style={{ background: C.navy, padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.chalk }}>Join the Waitlist</div>
-            <div style={{ fontFamily: sans, fontSize: 12, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>Launching late 2026 · Founding members get priority access</div>
-          </div>
-          <button onClick={onClose} aria-label="Close" style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", width: 36, height: 36, borderRadius: 9, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
-        </div>
-        <div style={{ padding: "28px 24px 32px" }}>
-          {status === "done" ? (
-            <div style={{ textAlign: "center", padding: "20px 0" }}>
-              <div style={{ fontSize: 52, marginBottom: 14 }}>🎉</div>
-              <div style={{ fontFamily: serif, fontSize: 26, fontWeight: 600, color: C.ink, marginBottom: 8 }}>You're on the list!</div>
-              <p style={{ fontFamily: sans, fontSize: 14, color: C.slate, lineHeight: 1.7, marginBottom: 24 }}>We'll be in touch before launch with your early access details. Welcome to SquadLoop.</p>
-              <GoldBtn onClick={onClose}>Back to site</GoldBtn>
+const TRUST = [
+  ["UAE PDPL compliant", "Child data protected under Federal Decree-Law No. 45/2021. Consent logged at onboarding; data hosted on UAE servers."],
+  ["KHDA provider checks", "Trade licence, insurance and police clearance verified before any provider goes live."],
+  ["Automatic document alerts", "Expiring certifications are monitored continuously and automatically pause bookings."],
+  ["Stripe-secured payments", "We never hold your money. Stripe routes funds to each party; card details never touch our servers."],
+  ["DTEC licensed", "Operating under a Dubai Silicon Oasis technology licence — fully regulated."],
+  ["Safeguarding by design", "Providers never see student directories. Rosters show only children enrolled in that session."],
+];
+const ROMAN = ["I", "II", "III", "IV", "V", "VI"];
+
+const Trust = () => (
+  <section className="trust" id="trust">
+    <div className="wrap trust-grid">
+      <div className="trust-head" data-reveal>
+        <Eyebrow>Standards</Eyebrow>
+        <h2 className="display">
+          Safety and compliance, <em>by design.</em>
+        </h2>
+        <p className="lede">Working with children in UAE schools means zero compromise on safeguarding, data protection and regulation.</p>
+      </div>
+      <ol className="trust-list">
+        {TRUST.map(([t, b], i) => (
+          <li key={t} data-reveal>
+            <span className="tr-n">{ROMAN[i]}</span>
+            <div>
+              <h3>{t}</h3>
+              <p>{b}</p>
             </div>
-          ) : (
-            <>
-              <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, color: C.slate, letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>I am a…</div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
-                {[["👨‍👧", "Parent"], ["🏫", "School"], ["🎯", "ECA Provider"]].map(([ic, label]) => (
-                  <button key={label} onClick={() => set("role", label)} style={{ fontFamily: sans, fontWeight: 700, fontSize: 13, padding: "10px 16px", borderRadius: 10, border: `1.5px solid ${form.role === label ? C.gold : C.fog}`, background: form.role === label ? C.goldSoft : "transparent", color: form.role === label ? "#8B6510" : C.slate, cursor: "pointer", transition: "all 0.18s", display: "flex", alignItems: "center", gap: 6 }}>{ic} {label}</button>
-                ))}
-              </div>
-              {[{ label: "Full Name", key: "name", placeholder: "Your full name", type: "text" }, { label: "Email Address", key: "email", placeholder: "you@example.com", type: "email" }].map(f => (
-                <div key={f.key} style={{ marginBottom: 14 }}>
-                  <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, color: C.slate, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>{f.label}</div>
-                  <input value={form[f.key]} onChange={e => set(f.key, e.target.value)} placeholder={f.placeholder} type={f.type} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, border: `1.5px solid ${C.fog}`, fontFamily: sans, fontSize: 14, color: C.ink, background: C.mist, boxSizing: "border-box", outline: "none" }} onFocus={e => e.target.style.borderColor = C.gold} onBlur={e => e.target.style.borderColor = C.fog} />
-                </div>
-              ))}
-              {status === "invalid" && <div style={{ fontFamily: sans, fontSize: 12, color: "#D42B2B", marginBottom: 10 }}>Please pick a role, enter your name, and a valid email address.</div>}
-              {status === "error" && <div style={{ fontFamily: sans, fontSize: 12, color: "#D42B2B", marginBottom: 10 }}>Something went wrong. Please email hello@squadloop.ae</div>}
-              <GoldBtn onClick={submit} block style={{ marginTop: 8 }}>{status === "sending" ? "Securing your spot…" : "Secure My Spot →"}</GoldBtn>
-              <p style={{ fontFamily: sans, fontSize: 11, color: C.muted, textAlign: "center", marginTop: 12 }}>No spam. UAE PDPL compliant. Unsubscribe any time.</p>
-            </>
-          )}
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+);
+
+const Feedback = () => (
+  <section className="feedback" id="feedback">
+    <div className="wrap feedback-grid">
+      <div data-reveal>
+        <Eyebrow>For parents</Eyebrow>
+        <h2 className="display">
+          Help us build <em>the right thing.</em>
+        </h2>
+        <p className="lede">We're building SquadLoop with Dubai families. Tell us how activities work for you today — it takes under a minute.</p>
+      </div>
+      <div data-reveal>
+        <FeedbackForm />
+      </div>
+    </div>
+  </section>
+);
+
+const Finale = () => (
+  <section className="finale" id="waitlist">
+    <div className="finale-ring-space" aria-hidden="true" />
+    <div className="wrap">
+      <div className="finale-head" data-reveal>
+        <Eyebrow>Founding members</Eyebrow>
+        <h2 className="display xl">
+          The waitlist <em>is open.</em>
+        </h2>
+      </div>
+      <div className="finale-inner">
+        <div className="finale-copy" data-reveal>
+          <p className="lede">Founding parents, academies and schools receive priority access when SquadLoop launches in Dubai.</p>
+          <ul className="perks">
+            <li><span>I</span>Priority access at launch</li>
+            <li><span>II</span>Founding-member rates for academies</li>
+            <li><span>III</span>A say in what we build next</li>
+          </ul>
+        </div>
+        <div className="finale-form" data-reveal>
+          <WaitlistForm />
         </div>
       </div>
     </div>
-  );
-};
+  </section>
+);
 
-const getBotReply = (msg) => {
-  const q = msg.toLowerCase();
-  if (q.match(/price|cost|how much|pricing|fee|aed|subscription|plan|tier/))
-    return "For parents, SquadLoop is free — you just pay per session. 🎓\n\nFor academies/providers: Starter is free (9% fee), Growth is AED 799/month (7% fee), Elite is AED 1,499/month (5.5% fee).\n\nFor schools: Free Partner plan or Campus Pro at AED 499/month (8% revenue share). All paid plans include a 14-day free trial!";
-  if (q.match(/school|facility|facilit|venue|pitch|court|pool|campus|hall|studio|lab/))
-    return "Schools earn 90% of every facility rental — SquadLoop takes just 10%. 🏫 We handle all bookings, compliance checks, and payments. Every provider is KHDA-verified before they step on campus. Zero admin for your team!";
-  if (q.match(/academy|coach|provider|list|session|class|music|stem|art|coding|robot|programme/))
-    return "SquadLoop is for ALL ECA providers — not just sports! 🎯 Football academies, music schools, coding clubs, robotics programmes, arts studios — list your sessions, book school venues, manage rosters, and receive automated Stripe payouts. 93% of every booking goes straight to you.";
-  if (q.match(/parent|book|child|kid|sport|activity|discover|find/))
-    return "Parents can browse KHDA-verified providers by activity type, area, and age group — then book and pay in just a few taps. 👨‍👧 SquadLoop covers everything: Football, Swimming, Tennis, Basketball, Martial Arts, Music, STEM, Coding, Robotics, Arts, Gymnastics, and more. Free to use!";
-  if (q.match(/safe|khda|pdpl|compliance|legal|regulated|data|privacy/))
-    return "SquadLoop is built with compliance at its core. ✅ We're UAE PDPL compliant, KHDA-verified providers only, DTEC licensed in Dubai Silicon Oasis, and Stripe-secured for all payments. Child safeguarding is built into every layer of the platform.";
-  if (q.match(/launch|when|available|open|start|ready/))
-    return "We're launching in Dubai in late 2026! 🚀 Join the waitlist now for priority access. Tap the gold 'Join Waitlist' button at the top of the page.";
-  if (q.match(/contact|email|reach|talk|call|speak/))
-    return "You can reach us at hello@squadloop.ae and we'll get back to you within 24 hours. 📧 Or scroll down to our Contact section and fill in the form directly on this page!";
-  if (q.match(/stripe|pay|payment|payout|money|transfer/))
-    return "All payments are handled securely by Stripe. 💳 Parents pay per session through the app. Providers receive 93% of every booking automatically. Schools receive 90% of every facility rental. We never hold funds.";
-  if (q.match(/waitlist|sign up|register|join|early access/))
-    return "Tap the gold 'Join Waitlist' button at the top of the page! 🌟 Waitlist members get priority access when we launch in late 2026.";
-  if (q.match(/hi|hello|hey|morning|evening|good/))
-    return "Hello! 👋 Great to meet you. I'm here to help with any questions about SquadLoop — pricing, how it works for parents, schools, or ECA providers. What would you like to know?";
-  if (q.match(/how|work|what is|about|explain|tell me/))
-    return "SquadLoop is Dubai's premium extracurricular activity marketplace. 🏅 We connect:\n\n👨‍👧 Parents — discover and book any ECA for their children\n🏫 Schools — monetise empty facilities after hours\n🎯 Providers — reach school families across sports, music, STEM, arts & more\n\nAll in one elegant platform. Launching late 2026!";
-  return "Great question! For anything specific, please email us at hello@squadloop.ae and we'll get back to you within 24 hours. 😊 You can also scroll down to our Contact section!";
-};
-
-const Chatbot = ({ hidden = false }) => {
-  const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([{ from: "bot", text: "Hi! I'm the SquadLoop assistant 👋\n\nAsk me anything about the platform — pricing, how it works, or how to get involved!" }]);
-  const [input, setInput] = useState("");
-  const bottomRef = useRef(null);
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, open]);
-  const send = () => {
-    if (!input.trim()) return;
-    const userMsg = input.trim();
-    setInput("");
-    const reply = getBotReply(userMsg);
-    setMessages(p => [...p, { from: "user", text: userMsg }, { from: "bot", text: reply }]);
-  };
-  const suggestions = ["What's the pricing?", "How does it work for schools?", "When are you launching?", "I'm a parent"];
-  return (
-    <>
-      <button onClick={() => setOpen(p => !p)} aria-label={open ? "Close chat assistant" : "Open chat assistant"} aria-expanded={open} style={{ position: "fixed", bottom: 24, right: 24, zIndex: 2000, width: 58, height: 58, borderRadius: "50%", background: C.gold, border: "none", cursor: "pointer", boxShadow: `0 8px 28px ${C.gold}66`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, transition: "transform 0.2s, opacity 0.4s", opacity: hidden ? 0 : 1, pointerEvents: hidden ? "none" : "auto" }} onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1)"} onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>{open ? "✕" : "💬"}</button>
-      {open && (
-        <div style={{ position: "fixed", bottom: 94, right: 24, zIndex: 1999, width: "min(340px, calc(100vw - 32px))", maxHeight: "min(500px, calc(100vh - 120px))", background: C.chalk, borderRadius: 18, boxShadow: "0 20px 60px rgba(9,21,42,0.25)", display: "flex", flexDirection: "column", overflow: "hidden", border: `1px solid ${C.fog}` }}>
-          <div style={{ background: C.navy, padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-            <div style={{ width: 34, height: 34, borderRadius: "50%", background: C.gold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: C.ink, flexShrink: 0 }}>S</div>
-            <div><div style={{ fontFamily: sans, fontSize: 13, fontWeight: 800, color: "#fff" }}>SquadLoop Assistant</div><div style={{ fontFamily: sans, fontSize: 10, color: "rgba(255,255,255,0.4)" }}>Ask me anything · Always here</div></div>
-            <button onClick={() => setOpen(false)} aria-label="Close chat" style={{ marginLeft: "auto", background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", width: 28, height: 28, borderRadius: 7, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
+const Footer = () => (
+  <footer className="footer">
+    <div className="wrap">
+      <div className="ft-top">
+        <div className="ft-brand">
+          <img src="/logo-mark.png" alt="SquadLoop" width="160" height="35" loading="lazy" />
+          <p>Dubai's premium after-school activity platform — connecting parents, academies and schools.</p>
+          <a href="mailto:hello@squadloop.ae" className="ft-mail">hello@squadloop.ae</a>
+        </div>
+        <div className="ft-cols">
+          <div>
+            <h4>Platform</h4>
+            <a href="#parents">For parents</a>
+            <a href="#academies">For academies</a>
+            <a href="#schools">For schools</a>
+            <a href="#pricing">Pricing</a>
           </div>
-          <div style={{ flex: 1, overflowY: "auto", padding: "14px 12px", display: "flex", flexDirection: "column", gap: 9 }}>
-            {messages.map((m, i) => (<div key={i} style={{ display: "flex", justifyContent: m.from === "user" ? "flex-end" : "flex-start" }}><div style={{ maxWidth: "86%", background: m.from === "user" ? C.navy : C.mist, color: m.from === "user" ? "#fff" : C.ink, borderRadius: m.from === "user" ? "13px 13px 4px 13px" : "13px 13px 13px 4px", padding: "9px 13px", fontFamily: sans, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-line" }}>{m.text}</div></div>))}
-            {messages.length === 1 && (<div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>{suggestions.map(s => (<button key={s} onClick={() => { const reply = getBotReply(s); setMessages(p => [...p, { from: "user", text: s }, { from: "bot", text: reply }]); }} style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, padding: "6px 12px", borderRadius: 20, border: `1.5px solid ${C.gold}`, background: C.goldSoft, color: "#8B6510", cursor: "pointer" }}>{s}</button>))}</div>)}
-            <div ref={bottomRef} />
+          <div>
+            <h4>Company</h4>
+            <a href="#waitlist">Join the waitlist</a>
+            <a href="#feedback">Parent feedback</a>
+            <a href="mailto:hello@squadloop.ae">Contact</a>
           </div>
-          <div style={{ padding: "10px 12px", borderTop: `1px solid ${C.fog}`, display: "flex", gap: 8, flexShrink: 0 }}>
-            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Ask anything about SquadLoop…" aria-label="Ask the SquadLoop assistant a question" style={{ flex: 1, padding: "9px 13px", borderRadius: 9, border: `1.5px solid ${C.fog}`, fontFamily: sans, fontSize: 13, color: C.ink, background: C.mist, outline: "none" }} onFocus={e => e.target.style.borderColor = C.gold} onBlur={e => e.target.style.borderColor = C.fog} />
-            <button onClick={send} aria-label="Send message" style={{ width: 38, height: 38, borderRadius: 9, background: C.gold, border: "none", cursor: "pointer", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>→</button>
+          <div>
+            <h4>Trust</h4>
+            <a href="#trust">UAE PDPL</a>
+            <a href="#trust">KHDA checks</a>
+            <a href="#trust">Safeguarding</a>
           </div>
         </div>
-      )}
-    </>
-  );
-};
+      </div>
+      <div className="ft-big" aria-hidden="true">
+        Squad<em>Loop</em>
+      </div>
+      <div className="ft-bottom">
+        <span>© 2026 SquadLoop UAE · DTEC licensed, Dubai Silicon Oasis</span>
+        <span>Dubai, United Arab Emirates</span>
+      </div>
+    </div>
+  </footer>
+);
 
-export default function SquadLoopLanding() {
-  const [showModal, setShowModal] = useState(false);
-  const reduced = usePrefersReducedMotion();
-  const [prog, setProg] = useState(0);
+/* -------------------------------- app -------------------------------- */
+export default function App() {
+  const [reduced] = useState(isReduced);
+  const [mobile] = useState(isMobile);
+  const [ringReady, setRingReady] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [lifted, setLifted] = useState(false);
+  const [step, setStep] = useState(0);
 
-  // Always begin at the top so the blue intro plays from the start on every load.
+  // never hold visitors on the preloader if WebGL is slow
   useEffect(() => {
-    if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
-    window.scrollTo(0, 0);
+    const t = setTimeout(() => setRingReady(true), 4500);
+    return () => clearTimeout(t);
   }, []);
 
-  // Scroll progress over the first viewport drives the whole intro (0 → docked).
-  // A lerped rAF loop chases the scroll position, so the logo glides with
-  // momentum instead of stepping on each discrete scroll event.
   useEffect(() => {
-    if (reduced) { setProg(1); return; }
-    let raf, cur = Math.min(1, Math.max(0, window.scrollY / (window.innerHeight * INTRO_PIN)));
-    setProg(cur);
-    const tick = () => {
-      const target = Math.min(1, Math.max(0, window.scrollY / (window.innerHeight * INTRO_PIN)));
-      cur += (target - cur) * 0.14;
-      if (Math.abs(target - cur) < 0.0008) cur = target;
-      setProg(p => (p === cur ? p : cur));
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+    document.documentElement.classList.toggle("reduced", reduced);
   }, [reduced]);
 
-  const intro = !reduced;               // whether the blue curtain exists
-  const chromeHidden = intro && prog < 0.92; // hide nav + chatbot until the curtain lifts
-  const open = () => setShowModal(true);
-  const close = () => setShowModal(false);
+  // Smooth scroll
+  useEffect(() => {
+    if (reduced) return;
+    const lenis = new Lenis({ duration: 1.25, easing: (t) => 1 - Math.pow(1 - t, 4), smoothWheel: true });
+    setLenis(lenis);
+    lenis.on("scroll", ScrollTrigger.update);
+    const raf = (time) => lenis.raf(time * 1000);
+    gsap.ticker.add(raf);
+    gsap.ticker.lagSmoothing(0);
+    lenis.stop();
+    return () => {
+      gsap.ticker.remove(raf);
+      lenis.destroy();
+      setLenis(null);
+    };
+  }, [reduced]);
+
+  // In-page anchors go through Lenis
+  useEffect(() => {
+    const onClick = (e) => {
+      const a = e.target.closest?.('a[href^="#"]');
+      if (!a) return;
+      const id = a.getAttribute("href").slice(1);
+      if (!id) return;
+      e.preventDefault();
+      scrollToId(id);
+    };
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, []);
+
+  // Scroll choreography
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      if (!reduced) gsap.set(".hero-title .wi", { yPercent: 110 });
+      // generic reveals
+      gsap.utils.toArray("[data-reveal]").forEach((el) => {
+        gsap.fromTo(
+          el,
+          { y: reduced ? 0 : 48, opacity: 0 },
+          { y: 0, opacity: 1, duration: 1.3, ease: "power4.out", scrollTrigger: { trigger: el, start: "top 88%", once: true } }
+        );
+      });
+
+      if (reduced) {
+        setAnchors([{ pos: 0, v: { ...ringTarget, ...anchorSpec(isMobile())[0].v } }]);
+        return;
+      }
+
+      // story: words light up as you read
+      gsap.fromTo(
+        ".story .sw",
+        { opacity: 0.12 },
+        { opacity: 1, stagger: 0.1, ease: "none", scrollTrigger: { trigger: ".story-text", start: "top 78%", end: "bottom 42%", scrub: true } }
+      );
+
+      // three sides: pinned while the ring splits into three
+      gsap
+        .timeline({
+          scrollTrigger: { trigger: "#loop", start: "top top", end: () => "+=" + window.innerHeight * 1.1, pin: true, scrub: true },
+        })
+        .fromTo(".loop-head", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" })
+        .fromTo(".ll", { opacity: 0, y: 28 }, { opacity: 1, y: 0, stagger: 0.12, duration: 0.3, ease: "power2.out" }, "-=0.1")
+        .to({}, { duration: 0.45 });
+
+      // how it works: phone rotates in, then the section pins and steps advance
+      gsap.fromTo(
+        ".phone",
+        { rotateY: -32, rotateX: 16, y: 120, opacity: 0 },
+        { rotateY: -10, rotateX: 4, y: 0, opacity: 1, ease: "none", scrollTrigger: { trigger: "#how", start: "top 90%", end: "top top", scrub: true } }
+      );
+      const stepsEl = document.querySelector(".steps");
+      const phone = document.querySelector(".phone");
+      ScrollTrigger.create({
+        trigger: "#how",
+        start: "top top",
+        end: () => "+=" + window.innerHeight * 2,
+        pin: true,
+        onUpdate: (self) => {
+          const p = self.progress;
+          stepsEl?.style.setProperty("--p", p.toFixed(4));
+          if (phone) gsap.set(phone, { rotateY: -10 + p * 20, rotateX: 4 - p * 4 });
+          const s = Math.min(2, Math.floor(p * 3));
+          setStep((prev) => (prev === s ? prev : s));
+        },
+      });
+
+      // finale glow line
+      gsap.fromTo(".finale-head .display em", { backgroundSize: "0% 1px" }, { backgroundSize: "100% 1px", ease: "none", scrollTrigger: { trigger: ".finale-head", start: "top 70%", end: "top 30%", scrub: true } });
+    });
+
+    const onRefresh = () => measureAnchors();
+    ScrollTrigger.addEventListener("refresh", onRefresh);
+    const onScroll = () => sample(window.scrollY);
+    if (!reduced) window.addEventListener("scroll", onScroll, { passive: true });
+    document.fonts?.ready.then(() => ScrollTrigger.refresh());
+    ScrollTrigger.refresh();
+
+    return () => {
+      ScrollTrigger.removeEventListener("refresh", onRefresh);
+      window.removeEventListener("scroll", onScroll);
+      ctx.revert();
+    };
+  }, [reduced]);
+
+  // Magnetic buttons (fine pointers only)
+  useEffect(() => {
+    if (reduced || !window.matchMedia("(pointer: fine)").matches) return;
+    const els = Array.from(document.querySelectorAll("[data-magnetic]"));
+    const handlers = els.map((el) => {
+      const move = (e) => {
+        const r = el.getBoundingClientRect();
+        const dx = e.clientX - (r.left + r.width / 2);
+        const dy = e.clientY - (r.top + r.height / 2);
+        el.style.transform = `translate3d(${dx * 0.28}px, ${dy * 0.38}px, 0)`;
+      };
+      const leave = () => {
+        el.style.transform = "";
+      };
+      el.addEventListener("pointermove", move);
+      el.addEventListener("pointerleave", leave);
+      return () => {
+        el.removeEventListener("pointermove", move);
+        el.removeEventListener("pointerleave", leave);
+      };
+    });
+    return () => handlers.forEach((off) => off());
+  }, [reduced, loaded]);
+
+  const onLift = useCallback(() => {
+    setLifted(true);
+    const d = reduced ? 0.01 : 1;
+    gsap.to(".hero-title .wi", { yPercent: 0, stagger: 0.09 * d, duration: 1.5 * d, ease: "power4.out", delay: 0.25 * d });
+    gsap.to(".hero-fade", { opacity: 1, y: 0, stagger: 0.12 * d, duration: 1.4 * d, ease: "power4.out", delay: 0.7 * d });
+  }, [reduced]);
+
+  const onDone = useCallback(() => {
+    setLoaded(true);
+    document.body.classList.remove("is-loading");
+    getLenis()?.start();
+    ScrollTrigger.refresh();
+  }, []);
+
   return (
-    <div style={{ margin: 0, padding: 0, fontFamily: sans }}>
-      {intro && <BlueIntro prog={prog} />}
-      <Nav onWaitlist={open} hidden={chromeHidden} />
-      <ScrollLogo prog={reduced ? 1 : prog} />
-      <Hero onWaitlist={open} />
-      <PersonaStrip onWaitlist={open} />
-      <HowItWorks />
-      <SchoolSection onWaitlist={open} />
-      <AcademySection onWaitlist={open} />
-      <PricingSection onWaitlist={open} />
-      <TrustSection />
-      <QuizSection />
-      <ContactSection />
-      <FinalCTA onWaitlist={open} />
-      <Footer onWaitlist={open} />
-      {showModal && <WaitlistModal onClose={close} />}
-      <Chatbot hidden={chromeHidden} />
-    </div>
+    <>
+      <RingCanvas mobile={mobile} reduced={reduced} onReady={() => setRingReady(true)} />
+      <div className="grain" aria-hidden="true" />
+      {!loaded && <Preloader ready={ringReady} reduced={reduced} onLift={onLift} onDone={onDone} />}
+      <Cursor />
+      <Nav visible={lifted} />
+      <main>
+        <Hero />
+        <Story />
+        <LoopSection />
+        <Audiences />
+        <How step={step} />
+        <Marquee />
+        <Pricing />
+        <Trust />
+        <Feedback />
+        <Finale />
+      </main>
+      <Footer />
+    </>
   );
 }
