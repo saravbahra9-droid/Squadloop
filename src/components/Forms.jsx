@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Star from "./Star.jsx";
 
 const FORMSPREE_URL = "https://formspree.io/f/mqeveyjn";
 const FEEDBACK_URL = "https://formspree.io/f/mzezknkz";
@@ -39,7 +40,7 @@ export function WaitlistForm() {
   if (status === "done")
     return (
       <div className="form-card done" role="status">
-        <div className="done-mark">✦</div>
+        <Star className="done-mark" />
         <h3 className="display-sm">You're on the list.</h3>
         <p className="muted">We'll write to {form.email} before launch with your founding-member access.</p>
       </div>
@@ -121,7 +122,7 @@ export function FeedbackForm() {
   if (status === "done")
     return (
       <div className="form-card done" role="status">
-        <div className="done-mark">✦</div>
+        <Star className="done-mark" />
         <h3 className="display-sm">Thank you.</h3>
         <p className="muted">Your answers shape what we build for Dubai families.</p>
       </div>

@@ -42,7 +42,7 @@ export default function Nav({ visible }) {
     <header className={cls}>
       <div className="nav-inner">
         <a href="#top" className="nav-logo" aria-label="SquadLoop home" onClick={() => setOpen(false)}>
-          <img src="/logo-mark.png" alt="SquadLoop" width="155" height="34" />
+          <img src="/logo-nav.png" alt="SquadLoop" width="640" height="140" />
         </a>
         <nav className="nav-links" aria-label="Primary">
           {LINKS.map(([label, id]) => (

@@ -1,14 +1,15 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
-import RingCanvas from "./components/RingCanvas.jsx";
-import Preloader, { Star } from "./components/Preloader.jsx";
+import StarCanvas from "./components/StarCanvas.jsx";
+import Preloader from "./components/Preloader.jsx";
+import Star from "./components/Star.jsx";
 import Nav from "./components/Nav.jsx";
 import Cursor from "./components/Cursor.jsx";
 import Phone from "./components/Phone.jsx";
 import { WaitlistForm, FeedbackForm } from "./components/Forms.jsx";
-import { setAnchors, sample, ringTarget } from "./lib/ringState.js";
+import { setAnchors, sample, openGate } from "./lib/starState.js";
 import { setLenis, getLenis, scrollToId } from "./lib/scroll.js";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -18,45 +19,55 @@ const isReduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").ma
 const isMobile = () => window.matchMedia("(max-width: 767px)").matches;
 
 /* ------------------------------------------------------------------ */
-/* Ring choreography: where the gold loop sits at each point of scroll */
-/* x / y are fractions of the half-viewport (−1…1), y up is positive.   */
+/* Star choreography: where the gold star sits at each point of scroll. */
+/* x / y are fractions of the half-viewport (-1..1), y up is positive.   */
 /* ------------------------------------------------------------------ */
-const anchorSpec = (m) => {
+const anchorSpec = (m, portrait) => {
   const loop = m
     ? { x: 0, y: 0.12, scale: 0.36, split: 1, opacity: 1, glow: 0.25 }
-    : { x: 0, y: 0.14, scale: 0.62, split: 1, opacity: 1, glow: 0.25 };
+    : { x: 0, y: 0.14, scale: 0.7, split: 1, opacity: 1, glow: 0.25 };
   const how = m
-    ? { x: 0.75, y: 0.86, scale: 0.18, split: 0, opacity: 0.12, glow: 0 }
-    : { x: -0.86, y: 0.7, scale: 0.26, split: 0, opacity: 0.22, glow: 0 };
+    ? { x: 0.75, y: 0.86, scale: 0.18, split: 0, opacity: 0.2, glow: 0 }
+    : { x: -0.86, y: 0.7, scale: 0.26, split: 0, opacity: 0.28, glow: 0 };
+  const story = m
+    ? { x: 0.42, y: 0.64, scale: 0.34, split: 0, opacity: 0.5, glow: 0.1 }
+    : portrait
+      ? { x: 0.6, y: 0.72, scale: 0.6, split: 0, opacity: 0.6, glow: 0.1 }
+      : { x: -0.74, y: -0.02, scale: 0.6, split: 0, opacity: 0.95, glow: 0.15 };
   return [
-    { sel: "#top", at: "start", v: m ? { x: 0, y: 0.4, scale: 0.56, split: 0, opacity: 1, glow: 0.35 } : { x: 0.5, y: 0.02, scale: 0.9, split: 0, opacity: 1, glow: 0.35 } },
-    { sel: "#story", at: "center", v: m ? { x: 0.4, y: 0.62, scale: 0.36, split: 0, opacity: 0.45, glow: 0.1 } : { x: -0.74, y: -0.02, scale: 0.56, split: 0, opacity: 0.95, glow: 0.15 } },
+    { sel: "#top", at: "start", v: m ? { x: 0, y: 0.46, scale: 0.52, split: 0, opacity: 1, glow: 0.35 } : { x: 0.5, y: 0.03, scale: 1.02, split: 0, opacity: 1, glow: 0.35 } },
+    { sel: "#story", at: "center", v: story },
     { sel: "#loop", at: "start", v: loop },
     { sel: "#loop", at: "end", v: loop },
-    { sel: "#audiences", at: "center", v: { x: 0, y: 0.8, scale: m ? 0.22 : 0.3, split: 1, opacity: 0.1, glow: 0 } },
+    { sel: "#audiences", at: "center", v: m ? { x: 0.62, y: 0.86, scale: 0.2, split: 0, opacity: 0.18, glow: 0 } : { x: 0.84, y: 0.74, scale: 0.3, split: 0, opacity: 0.24, glow: 0 } },
     { sel: "#how", at: "start", v: how },
     { sel: "#how", at: "end", v: how },
-    { sel: "#pricing", at: "center", v: { x: m ? 0.6 : 0.88, y: -0.6, scale: 0.3, split: 0, opacity: 0.12, glow: 0 } },
-    { sel: "#trust", at: "center", v: { x: m ? -0.6 : -0.88, y: 0.55, scale: 0.28, split: 0, opacity: 0.12, glow: 0 } },
-    { sel: "#feedback", at: "center", v: { x: m ? 0.6 : 0.86, y: -0.5, scale: 0.26, split: 0, opacity: 0.1, glow: 0 } },
-    { sel: "#waitlist", at: "start", v: m ? { x: 0, y: 0.52, scale: 0.4, split: 0, opacity: 1, glow: 1 } : { x: 0, y: 0.44, scale: 0.55, split: 0, opacity: 1, glow: 1 } },
-    { sel: "#waitlist", at: "end", v: { x: 0, y: 0.95, scale: m ? 0.26 : 0.32, split: 0, opacity: 0.2, glow: 0.4 } },
+    { sel: "#pricing", at: "center", v: { x: m ? 0.6 : 0.88, y: -0.6, scale: 0.3, split: 0, opacity: 0.18, glow: 0 } },
+    { sel: "#trust", at: "center", v: { x: m ? -0.6 : -0.88, y: 0.55, scale: 0.28, split: 0, opacity: 0.18, glow: 0 } },
+    { sel: "#feedback", at: "center", v: { x: m ? 0.6 : 0.86, y: -0.5, scale: 0.26, split: 0, opacity: 0.16, glow: 0 } },
+    { sel: "#waitlist", at: "start", v: m ? { x: 0, y: 0.52, scale: 0.44, split: 0, opacity: 1, glow: 1 } : { x: 0, y: 0.44, scale: 0.62, split: 0, opacity: 1, glow: 1 } },
+    { sel: "#waitlist", at: "end", v: { x: 0, y: 1.15, scale: m ? 0.3 : 0.4, split: 0, opacity: 0, glow: 0.2 } },
   ];
 };
 
-function measureAnchors() {
+function measureAnchors(onlyFirst = false) {
+  const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const list = anchorSpec(isMobile())
+  const m = vw < 768;
+  const aspect = vw / vh;
+  // on squarer or portrait screens (tablets) the star scales down to fit
+  const k = m ? 1 : Math.min(1, Math.max(0.5, aspect / 1.35));
+  let list = anchorSpec(m, !m && aspect < 1)
     .map((a) => {
       const el = document.querySelector(a.sel);
       if (!el) return null;
-      const box = el.parentElement?.classList.contains("pin-spacer") ? el.parentElement : el;
-      const r = box.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
       const top = r.top + window.scrollY;
       const pos = a.at === "start" ? top : a.at === "end" ? top + r.height - vh : top + r.height / 2 - vh / 2;
-      return { pos: Math.max(0, pos), v: a.v };
+      return { pos: Math.max(0, pos), v: { ...a.v, scale: a.v.scale * k } };
     })
     .filter(Boolean);
+  if (onlyFirst) list = list.slice(0, 1);
   setAnchors(list);
   sample(window.scrollY);
 }
@@ -124,31 +135,48 @@ const Story = () => (
   </section>
 );
 
-const LoopSection = () => (
-  <section className="loop" id="loop">
-    <div className="loop-stage">
-      <div className="loop-head">
-        <Eyebrow>One platform</Eyebrow>
-        <h2 className="display">
-          Three sides. <em>One loop.</em>
-        </h2>
+const LoopSection = ({ reduced }) => {
+  const root = useRef(null);
+  useLayoutEffect(() => {
+    if (reduced) return;
+    const ctx = gsap.context(() => {
+      // The stage is held in place with CSS sticky (the browser does it on its
+      // own thread), and this timeline simply follows the scroll.
+      gsap
+        .timeline({ scrollTrigger: { trigger: root.current, start: "top 45%", end: "bottom bottom", scrub: 0.6 } })
+        .fromTo(".loop-head", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" })
+        .fromTo(".ll", { opacity: 0, y: 28 }, { opacity: 1, y: 0, stagger: 0.1, duration: 0.3, ease: "power2.out" }, 0.25)
+        .to({}, { duration: 0.5 });
+    }, root);
+    return () => ctx.revert();
+  }, [reduced]);
+
+  return (
+    <section className="loop" id="loop" ref={root}>
+      <div className="loop-stage">
+        <div className="loop-head">
+          <Eyebrow>One platform</Eyebrow>
+          <h2 className="display">
+            Three sides. <em>One loop.</em>
+          </h2>
+        </div>
+        <div className="loop-labels">
+          {[
+            ["I", "Parents", "Discover & book"],
+            ["II", "Academies", "Publish & grow"],
+            ["III", "Schools", "Host on campus"],
+          ].map(([n, t, s], i) => (
+            <div className="ll" key={t} style={{ left: `${20 + i * 30}%` }}>
+              <span className="ll-n">{n}</span>
+              <span className="ll-t">{t}</span>
+              <span className="ll-s">{s}</span>
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="loop-labels">
-        {[
-          ["I", "Parents", "Discover & book"],
-          ["II", "Academies", "Publish & grow"],
-          ["III", "Schools", "Host on campus"],
-        ].map(([n, t, s], i) => (
-          <div className="ll" key={t} style={{ left: `${20 + i * 30}%` }}>
-            <span className="ll-n">{n}</span>
-            <span className="ll-t">{t}</span>
-            <span className="ll-s">{s}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 const AUDIENCES = [
   {
@@ -240,35 +268,68 @@ const STEPS = [
   ["03", "Enjoy", "Reminders before every session, attendance marked in real time, and every child's week in one calm view."],
 ];
 
-const How = ({ step }) => (
-  <section className="how" id="how">
-    <div className="how-stage wrap">
-      <div className="how-copy">
-        <Eyebrow>How it works</Eyebrow>
-        <h2 className="display how-h">
-          Booking, <em>beautifully simple.</em>
-        </h2>
-        <ol className="steps">
-          <span className="steps-line" aria-hidden="true">
-            <span className="steps-fill" />
-          </span>
-          {STEPS.map(([n, t, b], i) => (
-            <li key={n} className={`step${i === step ? " is-active" : ""}${i < step ? " is-done" : ""}`}>
-              <span className="step-n">{n}</span>
-              <div className="step-b">
-                <h3>{t}</h3>
-                <p>{b}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
+const How = ({ reduced }) => {
+  const root = useRef(null);
+  const [step, setStep] = useState(0);
+
+  useLayoutEffect(() => {
+    if (reduced) return;
+    const ctx = gsap.context(() => {
+      const el = root.current;
+      const phone = el.querySelector(".phone");
+      const steps = el.querySelector(".steps");
+      // One continuous move: the phone turns in as the section arrives (0.9 of a
+      // screen), then keeps turning slowly while the section is held (2 screens).
+      gsap
+        .timeline({ defaults: { ease: "none" }, scrollTrigger: { trigger: el, start: "top 90%", end: "bottom bottom", scrub: 0.5 } })
+        .fromTo(phone, { rotateY: -32, rotateX: 16, y: 120, opacity: 0 }, { rotateY: -10, rotateX: 4, y: 0, opacity: 1, duration: 0.9 })
+        .to(phone, { rotateY: 10, rotateX: 0, duration: 2 });
+      ScrollTrigger.create({
+        trigger: el,
+        start: "top top",
+        end: "bottom bottom",
+        onUpdate: (self) => {
+          const p = self.progress;
+          // the gold line reaches each numbered step exactly as it becomes active
+          steps.style.setProperty("--p", Math.min(1, p * 1.5).toFixed(4));
+          const s = Math.min(2, Math.floor(p * 3));
+          setStep((prev) => (prev === s ? prev : s));
+        },
+      });
+    }, root);
+    return () => ctx.revert();
+  }, [reduced]);
+
+  return (
+    <section className={`how${reduced ? " is-static" : ""}`} id="how" ref={root}>
+      <div className="how-stage wrap">
+        <div className="how-copy">
+          <Eyebrow>How it works</Eyebrow>
+          <h2 className="display how-h">
+            Booking, <em>beautifully simple.</em>
+          </h2>
+          <ol className="steps">
+            <span className="steps-line" aria-hidden="true">
+              <span className="steps-fill" />
+            </span>
+            {STEPS.map(([n, t, b], i) => (
+              <li key={n} className={`step${i === step ? " is-active" : ""}${i < step ? " is-done" : ""}`}>
+                <span className="step-n">{n}</span>
+                <div className="step-b">
+                  <h3>{t}</h3>
+                  <p>{b}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+        <div className="how-phone">
+          <Phone step={step} />
+        </div>
       </div>
-      <div className="how-phone">
-        <Phone step={step} />
-      </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 const ACTIVITIES = ["Swimming", "Violin", "Football", "Chess", "Ballet", "Robotics", "Tennis", "Art", "Coding", "Piano", "Gymnastics", "Drama"];
 
@@ -403,7 +464,7 @@ const Feedback = () => (
 
 const Finale = () => (
   <section className="finale" id="waitlist">
-    <div className="finale-ring-space" aria-hidden="true" />
+    <div className="finale-star-space" aria-hidden="true" />
     <div className="wrap">
       <div className="finale-head" data-reveal>
         <Eyebrow>Founding members</Eyebrow>
@@ -433,26 +494,26 @@ const Footer = () => (
     <div className="wrap">
       <div className="ft-top">
         <div className="ft-brand">
-          <img src="/logo-mark.png" alt="SquadLoop" width="160" height="35" loading="lazy" />
+          <img src="/logo-nav.png" alt="SquadLoop" width="640" height="140" loading="lazy" />
           <p>Dubai's premium after-school activity platform — connecting parents, academies and schools.</p>
           <a href="mailto:hello@squadloop.ae" className="ft-mail">hello@squadloop.ae</a>
         </div>
         <div className="ft-cols">
           <div>
-            <h4>Platform</h4>
+            <h3>Platform</h3>
             <a href="#parents">For parents</a>
             <a href="#academies">For academies</a>
             <a href="#schools">For schools</a>
             <a href="#pricing">Pricing</a>
           </div>
           <div>
-            <h4>Company</h4>
+            <h3>Company</h3>
             <a href="#waitlist">Join the waitlist</a>
             <a href="#feedback">Parent feedback</a>
             <a href="mailto:hello@squadloop.ae">Contact</a>
           </div>
           <div>
-            <h4>Trust</h4>
+            <h3>Trust</h3>
             <a href="#trust">UAE PDPL</a>
             <a href="#trust">KHDA checks</a>
             <a href="#trust">Safeguarding</a>
@@ -474,14 +535,13 @@ const Footer = () => (
 export default function App() {
   const [reduced] = useState(isReduced);
   const [mobile] = useState(isMobile);
-  const [ringReady, setRingReady] = useState(false);
+  const [starReady, setStarReady] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [lifted, setLifted] = useState(false);
-  const [step, setStep] = useState(0);
 
   // never hold visitors on the preloader if WebGL is slow
   useEffect(() => {
-    const t = setTimeout(() => setRingReady(true), 4500);
+    const t = setTimeout(() => setStarReady(true), 4500);
     return () => clearTimeout(t);
   }, []);
 
@@ -491,10 +551,11 @@ export default function App() {
     document.documentElement.classList.toggle("reduced", reduced);
   }, [reduced]);
 
-  // Smooth scroll
+  // Smooth scroll for mouse wheels and trackpads. Touch keeps the device's own
+  // momentum scrolling, which is already the smoothest thing on an iPad or phone.
   useEffect(() => {
     if (reduced) return;
-    const lenis = new Lenis({ duration: 1.25, easing: (t) => 1 - Math.pow(1 - t, 4), smoothWheel: true });
+    const lenis = new Lenis({ lerp: 0.09, wheelMultiplier: 0.9, smoothWheel: true });
     setLenis(lenis);
     lenis.on("scroll", ScrollTrigger.update);
     const raf = (time) => lenis.raf(time * 1000);
@@ -534,55 +595,25 @@ export default function App() {
           { y: 0, opacity: 1, duration: 1.3, ease: "power4.out", scrollTrigger: { trigger: el, start: "top 88%", once: true } }
         );
       });
-
-      if (reduced) {
-        setAnchors([{ pos: 0, v: { ...ringTarget, ...anchorSpec(isMobile())[0].v } }]);
-        return;
-      }
+      if (reduced) return;
 
       // story: words light up as you read
       gsap.fromTo(
         ".story .sw",
         { opacity: 0.12 },
-        { opacity: 1, stagger: 0.1, ease: "none", scrollTrigger: { trigger: ".story-text", start: "top 78%", end: "bottom 42%", scrub: true } }
+        { opacity: 1, stagger: 0.1, ease: "none", scrollTrigger: { trigger: ".story-text", start: "top 78%", end: "bottom 42%", scrub: 0.4 } }
       );
 
-      // three sides: pinned while the ring splits into three
-      gsap
-        .timeline({
-          scrollTrigger: { trigger: "#loop", start: "top top", end: () => "+=" + window.innerHeight * 1.1, pin: true, scrub: true },
-        })
-        .fromTo(".loop-head", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" })
-        .fromTo(".ll", { opacity: 0, y: 28 }, { opacity: 1, y: 0, stagger: 0.12, duration: 0.3, ease: "power2.out" }, "-=0.1")
-        .to({}, { duration: 0.45 });
-
-      // how it works: phone rotates in, then the section pins and steps advance
+      // finale underline draws in
       gsap.fromTo(
-        ".phone",
-        { rotateY: -32, rotateX: 16, y: 120, opacity: 0 },
-        { rotateY: -10, rotateX: 4, y: 0, opacity: 1, ease: "none", scrollTrigger: { trigger: "#how", start: "top 90%", end: "top top", scrub: true } }
+        ".finale-head .display em",
+        { backgroundSize: "0% 1px" },
+        { backgroundSize: "100% 1px", ease: "none", scrollTrigger: { trigger: ".finale-head", start: "top 70%", end: "top 30%", scrub: 0.4 } }
       );
-      const stepsEl = document.querySelector(".steps");
-      const phone = document.querySelector(".phone");
-      ScrollTrigger.create({
-        trigger: "#how",
-        start: "top top",
-        end: () => "+=" + window.innerHeight * 2,
-        pin: true,
-        onUpdate: (self) => {
-          const p = self.progress;
-          stepsEl?.style.setProperty("--p", p.toFixed(4));
-          if (phone) gsap.set(phone, { rotateY: -10 + p * 20, rotateX: 4 - p * 4 });
-          const s = Math.min(2, Math.floor(p * 3));
-          setStep((prev) => (prev === s ? prev : s));
-        },
-      });
-
-      // finale glow line
-      gsap.fromTo(".finale-head .display em", { backgroundSize: "0% 1px" }, { backgroundSize: "100% 1px", ease: "none", scrollTrigger: { trigger: ".finale-head", start: "top 70%", end: "top 30%", scrub: true } });
     });
 
-    const onRefresh = () => measureAnchors();
+    // the star's waypoints are re-measured whenever the layout is
+    const onRefresh = () => measureAnchors(reduced);
     ScrollTrigger.addEventListener("refresh", onRefresh);
     const onScroll = () => sample(window.scrollY);
     if (!reduced) window.addEventListener("scroll", onScroll, { passive: true });
@@ -622,6 +653,9 @@ export default function App() {
 
   const onLift = useCallback(() => {
     setLifted(true);
+    // the star makes its entrance as the curtain rises
+    openGate();
+    sample(window.scrollY);
     const d = reduced ? 0.01 : 1;
     gsap.to(".hero-title .wi", { yPercent: 0, stagger: 0.09 * d, duration: 1.5 * d, ease: "power4.out", delay: 0.25 * d });
     gsap.to(".hero-fade", { opacity: 1, y: 0, stagger: 0.12 * d, duration: 1.4 * d, ease: "power4.out", delay: 0.7 * d });
@@ -636,17 +670,17 @@ export default function App() {
 
   return (
     <>
-      <RingCanvas mobile={mobile} reduced={reduced} onReady={() => setRingReady(true)} />
+      <StarCanvas mobile={mobile} reduced={reduced} onReady={() => setStarReady(true)} />
       <div className="grain" aria-hidden="true" />
-      {!loaded && <Preloader ready={ringReady} reduced={reduced} onLift={onLift} onDone={onDone} />}
+      {!loaded && <Preloader ready={starReady} reduced={reduced} onLift={onLift} onDone={onDone} />}
       <Cursor />
       <Nav visible={lifted} />
       <main>
         <Hero />
         <Story />
-        <LoopSection />
+        <LoopSection reduced={reduced} />
         <Audiences />
-        <How step={step} />
+        <How reduced={reduced} />
         <Marquee />
         <Pricing />
         <Trust />

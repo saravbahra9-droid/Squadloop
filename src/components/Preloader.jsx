@@ -1,14 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
-
-const Star = (props) => (
-  <svg viewBox="0 0 24 24" {...props}>
-    <path
-      d="M12 0 C12.7 7.9 16.1 11.3 24 12 C16.1 12.7 12.7 16.1 12 24 C11.3 16.1 7.9 12.7 0 12 C7.9 11.3 11.3 7.9 12 0 Z"
-      fill="currentColor"
-    />
-  </svg>
-);
+import Star from "./Star.jsx";
 
 export default function Preloader({ ready, reduced, onLift, onDone }) {
   const root = useRef(null);
@@ -16,14 +8,22 @@ export default function Preloader({ ready, reduced, onLift, onDone }) {
   const fired = useRef(false);
 
   useLayoutEffect(() => {
+    let cancelled = false;
     const ctx = gsap.context(() => {
       const d = reduced ? 0.01 : 1;
-      const tl = gsap.timeline({ onComplete: () => setIntroDone(true) });
+      const tl = gsap.timeline({ paused: true, onComplete: () => setIntroDone(true) });
       tl.fromTo(".pl-fill", { scaleX: 0 }, { scaleX: 0.82, duration: 1.6 * d, ease: "power4.out" }, 0)
         .fromTo(".pl-char", { yPercent: 115 }, { yPercent: 0, stagger: 0.055 * d, duration: 1.1 * d, ease: "power4.out" }, 0.15 * d)
         .fromTo(".pl-star", { scale: 0, rotate: -120, opacity: 0 }, { scale: 1, rotate: 0, opacity: 1, duration: 1 * d, ease: "power4.out" }, 0.75 * d);
+      // Start once the typefaces are in, so the wordmark never swaps mid-reveal.
+      const start = () => !cancelled && tl.play();
+      const fonts = document.fonts?.ready ?? Promise.resolve();
+      Promise.race([fonts, new Promise((r) => setTimeout(r, 1500))]).then(start);
     }, root);
-    return () => ctx.revert();
+    return () => {
+      cancelled = true;
+      ctx.revert();
+    };
   }, [reduced]);
 
   useEffect(() => {
@@ -62,5 +62,3 @@ export default function Preloader({ ready, reduced, onLift, onDone }) {
     </div>
   );
 }
-
-export { Star };
