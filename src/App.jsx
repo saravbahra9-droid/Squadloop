@@ -187,6 +187,7 @@ const AUDIENCES = [
     body: "Discover verified coaches and academies near your child's school. Book, pay and manage every child's week from one app — no WhatsApp threads, no bank transfers.",
     points: ["Verified providers near your school", "Book and pay in three taps", "Every child's schedule in one view", "Free for parents — pay per session"],
     cta: "Join as a parent",
+    role: "Parent",
   },
   {
     id: "academies",
@@ -200,6 +201,7 @@ const AUDIENCES = [
       ["Elite", "AED 1,499/mo", "5.5%"],
     ],
     cta: "List your programme",
+    role: "Academy / Provider",
   },
   {
     id: "schools",
@@ -209,6 +211,7 @@ const AUDIENCES = [
     body: "Halls, courts, pools and studios sit empty after school. Host vetted providers on campus and earn from every booking — with full oversight.",
     points: ["Keep 90% of every facility rental", "Campus Pro: AED 499 per campus / month, 92% to you", "Live dashboard of who is on campus", "KHDA-vetted providers only"],
     cta: "Request a school demo",
+    role: "School",
   },
 ];
 
@@ -250,7 +253,7 @@ const Audiences = () => (
                   ))}
                 </div>
               )}
-              <a href="#waitlist" className="aud-cta">
+              <a href="#waitlist" className="aud-cta" data-role={a.role}>
                 {a.cta} <span>→</span>
               </a>
               </div>
@@ -398,7 +401,7 @@ const Pricing = () => {
                   <li key={f}>{f}</li>
                 ))}
               </ul>
-              <a href="#waitlist" className={`btn ${p.highlight ? "btn-gold" : "btn-ghost"} btn-block`} data-magnetic>
+              <a href="#waitlist" className={`btn ${p.highlight ? "btn-gold" : "btn-ghost"} btn-block`} data-magnetic data-role={tab === "academies" ? "Academy / Provider" : "School"}>
                 {p.cta}
               </a>
             </article>
@@ -411,7 +414,7 @@ const Pricing = () => {
 };
 
 const TRUST = [
-  ["UAE PDPL compliant", "Child data protected under Federal Decree-Law No. 45/2021. Consent logged at onboarding; data hosted on UAE servers."],
+  ["UAE PDPL compliant", "Child data protected under Federal Decree-Law No. 45/2021. Consent logged at onboarding."],
   ["KHDA provider checks", "Trade licence, insurance and police clearance verified before any provider goes live."],
   ["Automatic document alerts", "Expiring certifications are monitored continuously and automatically pause bookings."],
   ["Stripe-secured payments", "We never hold your money. Stripe routes funds to each party; card details never touch our servers."],
@@ -525,7 +528,11 @@ const Footer = () => (
       </div>
       <div className="ft-bottom">
         <span>© 2026 SquadLoop UAE · DTEC licensed, Dubai Silicon Oasis</span>
-        <span>Dubai, United Arab Emirates</span>
+        <span className="ft-legal">
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms of Use</a>
+          <span>Dubai, United Arab Emirates</span>
+        </span>
       </div>
     </div>
   </footer>
@@ -577,6 +584,7 @@ export default function App() {
       const id = a.getAttribute("href").slice(1);
       if (!id) return;
       e.preventDefault();
+      if (a.dataset.role) window.dispatchEvent(new CustomEvent("sl:role", { detail: a.dataset.role }));
       scrollToId(id);
     };
     document.addEventListener("click", onClick);
@@ -666,6 +674,8 @@ export default function App() {
     document.body.classList.remove("is-loading");
     getLenis()?.start();
     ScrollTrigger.refresh();
+    const id = decodeURIComponent(window.location.hash.slice(1));
+    if (id && document.getElementById(id)) setTimeout(() => scrollToId(id), 500);
   }, []);
 
   return (

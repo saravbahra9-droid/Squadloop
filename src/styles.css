@@ -198,17 +198,18 @@ body::before {
     flex-direction: column;
     gap: 6px;
     position: fixed;
-    inset: 64px 0 0 0;
-    padding: 28px var(--pad) 40px;
-    background: rgba(8, 18, 31, 0.97);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    inset: 0;
+    z-index: 59; /* just under the bar, so the logo and close button stay on top */
+    padding: calc(64px + 24px) var(--pad) calc(48px + env(safe-area-inset-bottom));
+    background: radial-gradient(90% 60% at 80% 0%, rgba(31, 56, 92, 0.5), transparent 60%), var(--navy);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     clip-path: inset(0 0 100% 0);
     visibility: hidden; /* closed menu is out of the keyboard's reach too */
     transition: clip-path 0.9s var(--ease), visibility 0s linear 0.9s;
     pointer-events: none;
   }
-  .nav.is-open .nav-sheet { clip-path: inset(0 0 0 0); visibility: visible; transition: clip-path 0.9s var(--ease), visibility 0s; pointer-events: auto; }
+  .nav-sheet.is-open { clip-path: inset(0 0 0 0); visibility: visible; transition: clip-path 0.9s var(--ease), visibility 0s; pointer-events: auto; }
   .sheet-link {
     font-family: var(--serif);
     font-size: 40px;
@@ -219,9 +220,11 @@ body::before {
     opacity: 0; transform: translateY(24px);
     transition: opacity 0.8s var(--ease), transform 0.8s var(--ease);
   }
-  .nav.is-open .sheet-link { opacity: 1; transform: none; }
+  .nav-sheet.is-open .sheet-link { opacity: 1; transform: none; }
   .sheet-n { font-family: var(--sans); font-size: 11px; color: var(--gold); letter-spacing: 0.2em; }
-  .sheet-mail { margin-top: auto; color: var(--gold); font-size: 14px; }
+  .sheet-cta { margin-top: 30px; flex: none; }
+  .sheet-mail { margin-top: 22px; color: var(--gold); font-size: 14px; text-align: center; }
+  html.menu-open, html.menu-open body { overflow: hidden; }
 }
 
 /* ------------------------------------------------------------- buttons -- */
@@ -697,7 +700,10 @@ input, textarea {
 input::placeholder, textarea::placeholder { color: var(--ivory-4); }
 input:focus, textarea:focus { border-color: var(--gold); }
 .form-err { font-size: 13px; color: #f0a39a; }
-.form-foot { text-align: center; font-size: 11.5px; color: var(--ivory-4); margin-top: -6px; }
+.form-foot { text-align: center; font-size: 11.5px; line-height: 1.8; color: var(--ivory-4); margin-top: -6px; }
+.form-foot a { color: var(--ivory-3); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line-gold); transition: color 0.4s var(--ease); }
+.form-foot a:hover { color: var(--gold); }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
 /* --------------------------------------------------------------- finale -- */
 .finale { padding-bottom: clamp(100px, 14vh, 160px); }
@@ -740,6 +746,9 @@ input:focus, textarea:focus { border-color: var(--gold); }
   user-select: none;
 }
 .ft-big em { font-style: normal; color: rgba(200, 168, 75, 0.16); font-weight: 600; }
+.ft-legal { display: flex; gap: 22px; flex-wrap: wrap; }
+.ft-legal a { color: var(--ivory-3); transition: color 0.4s var(--ease); }
+.ft-legal a:hover { color: var(--gold); }
 .ft-bottom { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding-top: 24px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ivory-4); }
 
 /* ------------------------------------------------------- reduced motion -- */
