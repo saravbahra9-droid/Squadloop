@@ -418,7 +418,7 @@ const TRUST = [
   ["KHDA provider checks", "Trade licence, insurance and police clearance verified before any provider goes live."],
   ["Automatic document alerts", "Expiring certifications are monitored continuously and automatically pause bookings."],
   ["Stripe-secured payments", "We never hold your money. Stripe routes funds to each party; card details never touch our servers."],
-  ["DTEC licensed", "Operating under a Dubai Silicon Oasis technology licence — fully regulated."],
+  ["UAE licensed", "Operated by Kuki&CO LLC under a Sharjah Media City (Shams) licence, no. 2649634.01."],
   ["Safeguarding by design", "Providers never see student directories. Rosters show only children enrolled in that session."],
 ];
 const ROMAN = ["I", "II", "III", "IV", "V", "VI"];
@@ -527,7 +527,7 @@ const Footer = () => (
         Squad<em>Loop</em>
       </div>
       <div className="ft-bottom">
-        <span>© 2026 SquadLoop UAE · DTEC licensed, Dubai Silicon Oasis</span>
+        <span>© 2026 SquadLoop · Operated by Kuki&amp;CO LLC · Sharjah Media City (Shams) licence</span>
         <span className="ft-legal">
           <a href="/privacy">Privacy Policy</a>
           <a href="/terms">Terms of Use</a>
