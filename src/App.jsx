@@ -527,13 +527,17 @@ const Footer = () => (
         Squad<em>Loop</em>
       </div>
       <div className="ft-bottom">
-        <span>© 2026 SquadLoop UAE · DTEC licensed, Dubai Silicon Oasis</span>
+        <span>© 2026 SquadLoop</span>
         <span className="ft-legal">
-          <a href="/privacy">Privacy Policy</a>
-          <a href="/terms">Terms of Use</a>
-          <span>Dubai, United Arab Emirates</span>
+          <a href="https://www.bigloopco.com/privacy/squadloop" target="_blank" rel="noopener noreferrer">Privacy</a>
+          <a href="https://www.bigloopco.com/support" target="_blank" rel="noopener noreferrer">Support</a>
+          <a href="https://www.bigloopco.com/terms" target="_blank" rel="noopener noreferrer">Terms</a>
+          <a href="mailto:hello@squadloop.ae">hello@squadloop.ae</a>
         </span>
       </div>
+      <p className="ft-entity">
+        SquadLoop is a Big Loop Co product. Big Loop Co is a brand of Kuki&amp;CO LLC, Shams – Sharjah Media City, Sharjah, UAE. Licence 2649634.01.
+      </p>
     </div>
   </footer>
 );
